@@ -4633,10 +4633,9 @@ bool Point_anglevec1(zxhImageDataT<short> &imgRot,PointImgTypeDef PontImg,int R,
 
 	return true;
 }
-bool Point_select(zxhImageDataT<short> &imgRot,vector <PointImgTypeDef> &vCenPont,int R)
+bool Point_select(zxhImageDataT<short> &imgRot,vector <PointImgTypeDef> &vCenPont,int R,vector<PointImgTypeDef> &vpbitu,
+	vector<PointImgTypeDef> &vptroot)
 {
-	vector<PointImgTypeDef> vpbitu;
-	vector<PointImgTypeDef> vptroot;
 	for (int i=0;i<vCenPont.size();i++)
 	{
 		PointImgTypeDef PontImg;
@@ -4662,6 +4661,10 @@ bool Point_select(zxhImageDataT<short> &imgRot,vector <PointImgTypeDef> &vCenPon
 		vptroot.push_back(tmpPont);
 		}
 	}
+	return true;
+}
+bool Point_link(zxhImageDataT<short> &imgRot,int R,vector<PointImgTypeDef> &vpbitu,vector<PointImgTypeDef> &vptroot)
+{
 	return true;
 }
 int main(int argc, char *argv[])
@@ -4792,7 +4795,11 @@ if( zxh::OpenImage( &imgRotCent, strfilenameraw_rotCent ) == false )
 vector <PointImgTypeDef> vCenPont;
 GetBrPontsInOrder(imgRotCent,vCenPont);
 int R=3;
-Point_select(imgRot,vCenPont,R);
+	vector<PointImgTypeDef> vpbitu;
+	vector<PointImgTypeDef> vptroot;
+Point_select(imgRot,vCenPont,R,vpbitu,vptroot);
+
+Point_link(imgRot,R,vpbitu,vptroot);
 //----....----....----....----....----....----....
 
 /*
