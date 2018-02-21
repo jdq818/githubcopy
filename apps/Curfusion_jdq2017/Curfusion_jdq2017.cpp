@@ -4131,7 +4131,7 @@ bool replaceSameLabel(vector<int>& runLabels, vector<pair<int, int>>&
     vector<int> labelFlag(maxLabel, 0);
     vector<vector<int>> equaList;
     vector<int> tempList;
-    cout << maxLabel << endl;
+    //cout << maxLabel << endl;
     for (int i = 1; i <= maxLabel; i++)
     {
         if (labelFlag[i - 1])
@@ -4154,7 +4154,7 @@ bool replaceSameLabel(vector<int>& runLabels, vector<pair<int, int>>&
         equaList.push_back(tempList);
         tempList.clear();
     }
-    cout << equaList.size() << endl;
+    //cout << equaList.size() << endl;
     for (vector<int>::size_type i = 0; i != runLabels.size(); i++)
     {
         runLabels[i] = labelFlag[runLabels[i] - 1];
@@ -4633,35 +4633,59 @@ bool Point_anglevec1(zxhImageDataT<short> &imgRot,PointImgTypeDef PontImg,int R,
 
 	return true;
 }
-bool Point_select(zxhImageDataT<short> &imgRot,vector <PointImgTypeDef> &vCenPont,int R)
+bool Point_select(zxhImageDataT<short> &imgRot,vector <PointImgTypeDef> &vCenPont,int R,vector<PointImgTypeDef> &vpbitu,vector<PointImgTypeDef> &vptroot)
 {
-	vector<PointImgTypeDef> vpbitu;
-	vector<PointImgTypeDef> vptroot;
 	for (int i=0;i<vCenPont.size();i++)
 	{
 		PointImgTypeDef PontImg;
 		PontImg=vCenPont[i];
 		int AngNum=0;
-		if(PontImg.x==260&&PontImg.y==249&&PontImg.z==54)
-		{
-			int xxx=0;
-		}
 		Point_anglevec1(imgRot,PontImg,R,AngNum);
 		if(AngNum==3)
 		{
-		PointImgTypeDef tmpPont;
-		tmpPont=PontImg;
-		tmpPont.val=AngNum;
-		vpbitu.push_back(tmpPont);
+			PointImgTypeDef tmpPont;
+			tmpPont=PontImg;
+			tmpPont.val=vpbitu.size()+1;
+			vpbitu.push_back(tmpPont);
 		}
-			if(AngNum==1)
+		if(AngNum==1)
 		{
-		PointImgTypeDef tmpPont;
-		tmpPont=PontImg;
-		tmpPont.val=AngNum;
-		vptroot.push_back(tmpPont);
+			PointImgTypeDef tmpPont;
+			tmpPont=PontImg;
+			tmpPont.val=vptroot.size()+1;
+			vptroot.push_back(tmpPont);
 		}
 	}
+	return true;
+}
+bool Point_show(zxhImageDataT<short>&imgRot_cormarg,vector<PointImgTypeDef> &vpbitu,int R)
+{
+
+	 for(int i=0;i<vpbitu.size();i++)
+	 {
+		 PointImgTypeDef tmpPont;
+		 tmpPont=vpbitu[i];
+		 imgRot_cormarg.SetPixelByGreyscale(tmpPont.x,tmpPont.y,tmpPont.z,0,tmpPont.val);
+		 for (int nz = tmpPont.z-R; nz <=tmpPont.z+R; nz++)
+			 for (int nx = tmpPont.x-R; nx <=tmpPont.x+R; nx++)
+				 for (int ny = tmpPont.y-R; ny <=tmpPont.y+R; ny++)
+				 {
+					 if(nx==tmpPont.x-R||nx==tmpPont.x+R||ny==tmpPont.y-R||ny==tmpPont.y+R||nz==tmpPont.z-R||nz==tmpPont.z+R)
+					 {
+						 imgRot_cormarg.SetPixelByGreyscale(nx,ny,nz,0,tmpPont.val);
+					 }
+				 }
+	 }
+	 char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_CentMargLab.nii.gz";
+	 string chFileName2(chResultName);
+	 zxh::SaveImage(&imgRot_cormarg,chFileName2.c_str());
+	 return true;
+}
+bool Point_link(zxhImageDataT<short> &imgRot,zxhImageDataT<short>&imgRotCent,vector<PointImgTypeDef> &vpbitu,int R)
+{
+	zxhImageDataT<short> imgRot_cormarg;
+	imgRot_cormarg.NewImage(imgRot.GetImageInfo());
+	Point_show(imgRot_cormarg,vpbitu,R);
 	return true;
 }
 int main(int argc, char *argv[])
@@ -4792,7 +4816,10 @@ if( zxh::OpenImage( &imgRotCent, strfilenameraw_rotCent ) == false )
 vector <PointImgTypeDef> vCenPont;
 GetBrPontsInOrder(imgRotCent,vCenPont);
 int R=3;
-Point_select(imgRot,vCenPont,R);
+vector<PointImgTypeDef> vpbitu;
+	vector<PointImgTypeDef> vptroot;
+Point_select(imgRot,vCenPont,R,vpbitu,vptroot);
+Point_link(imgRot,imgRotCent,vpbitu,R);
 //----....----....----....----....----....----....
 
 /*
