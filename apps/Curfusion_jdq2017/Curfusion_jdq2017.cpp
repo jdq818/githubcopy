@@ -4676,16 +4676,157 @@ bool Point_show(zxhImageDataT<short>&imgRot_cormarg,vector<PointImgTypeDef> &vpb
 					 }
 				 }
 	 }
-	 char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_CentMargLab.nii.gz";
-	 string chFileName2(chResultName);
-	 zxh::SaveImage(&imgRot_cormarg,chFileName2.c_str());
+	// char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_CentMargLab.nii.gz";
+	// string chFileName2(chResultName);
+	// zxh::SaveImage(&imgRot_cormarg,chFileName2.c_str());
 	 return true;
+}
+bool SetZeroinmap(zxhImageDataT<short> &imgRot_cormarg,PointImgTypeDef PontSeed)
+{
+	int ImgSize[4]={0,0,0,0};
+	imgRot_cormarg.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);
+	for(int it=0;it<ImgSize[3];++it)
+		for(int iz=0;iz<ImgSize[2];++iz)
+			for(int iy=0;iy<ImgSize[1];++iy)
+				for(int ix=0;ix<ImgSize[0];++ix)
+				{
+					short sint=imgRot_cormarg.GetPixelGreyscale(ix,iy,iz,it);
+					if(sint==PontSeed.val)
+					{
+						imgRot_cormarg.SetPixelByGreyscale(ix,iy,iz,it,0);
+					}
+				}
+	return true;
+}
+bool SetZero(zxhImageDataT<short> &imgRot,PointImgTypeDef PontSeed)
+{
+	imgRot.SetPixelByGreyscale(PontSeed.x,PontSeed.y,PontSeed.z,0,0);
+	return true;
+}
+bool FindCentPont(int nintmarg,vector<PointImgTypeDef> &vpbitu,PointImgTypeDef &CentPont)
+{
+	for(int i=0;i<vpbitu.size();i++)
+	{
+		PointImgTypeDef tmp;
+		tmp=vpbitu[i];
+		if(nintmarg==tmp.val)
+		{
+			CentPont=tmp;
+			break;
+		}
+	}
+
+	return true;
+}
+bool Point_neighbor(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu,PointImgTypeDef PontSeed,zxhImageDataT<short>&imgRot_cormarg,int NeighborNum,int R)
+{
+		int gNbr[26][3] = { 
+		{-1, 0, 0}, \
+		{-1, -1, 0}, \
+		{-1, 1, 0}, \
+		{-1, 0, -1}, \
+		{-1, -1, -1}, \
+		{-1, -1, 1}, \
+		{-1, 1, -1}, \
+		{-1, 1, 1}, \
+		{-1, 0, 1}, \
+		{1, 0, 0}, \
+		{1, -1, 0}, \
+		{1, 1, 0}, \
+		{1, 0, -1}, \
+		{1, -1, -1}, \
+		{1, -1, 1}, \
+		{1, 1, -1}, \
+		{1, 1, 1}, \
+		{1, 0, 1}, \
+		{ 0,-1, 0}, \
+		{ 0, 1, 0}, \
+		{ 0, 0,-1}, \
+		{ 0, 0, 1},\
+		{ 0, -1,-1}, \
+		{ 0, -1,1}, \
+		{ 0, 1,-1}, \
+		{ 0, 1,1}, \
+	};
+		
+		zxhImageDataT<short> imgRot_copy;
+		imgRot_copy.NewImage(imgRot.GetImageInfo());
+		imgRot_copy=imgRot;
+		SetZeroinmap(imgRot_cormarg,PontSeed);
+		SetZero(imgRot,PontSeed);
+		vector<PointImgTypeDef> vmap;
+		vmap.push_back(PontSeed);
+		int ImgSize[4]={0,0,0,0};
+		imgRot_cormarg.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);
+		int ncout=0;
+		vector<PointImgTypeDef> vlink;
+		while(!vmap.empty()&&ncout<NeighborNum)
+		{
+			PontSeed=vmap[0];
+			for (int i = 0; i < 26; i++)
+			{
+				int nx = PontSeed.x + gNbr[i][0];
+				int ny = PontSeed.y + gNbr[i][1];
+				int nz = PontSeed.z + gNbr[i][2];
+				int nint=imgRot.GetPixelGreyscale(nx,ny,nz,0);
+				PointImgTypeDef tmp;
+				tmp.x=nx;
+				tmp.y=ny;
+				tmp.z=nz;
+				tmp.val=nint;
+				if(nx>0&&nx<ImgSize[0]&&ny>0&&ny<ImgSize[1]&&nz>0&&nz<ImgSize[2]&&nint!=0)
+				{
+
+					SetZero(imgRot,tmp);
+					int nintmarg=imgRot_cormarg.GetPixelGreyscale(nx,ny,nz,0);
+					if(nintmarg!=0)
+					{
+						PointImgTypeDef CentPont;
+						FindCentPont(nintmarg,vpbitu,CentPont);
+						vlink.push_back(CentPont);
+						ncout++;
+						if(ncout>=NeighborNum)
+							break;
+						SetZeroinmap(imgRot_cormarg,CentPont);
+						for (int i = 0; i < 26; i++)
+						{
+							int nx1 = tmp.x + gNbr[i][0];
+							int ny1 = tmp.y + gNbr[i][1];
+							int nz1 = tmp.z + gNbr[i][2];
+							if(nx1>0&&nx1<ImgSize[0]&&ny1>0&&ny1<ImgSize[1]&&nz1>0&&nz1<ImgSize[2])
+							{
+								PointImgTypeDef tmp1;
+								tmp1.x=nx1;
+								tmp1.y=ny1;
+								tmp1.z=nz1;
+								SetZero(imgRot,tmp1);
+							}
+						}
+					}
+					else
+					{
+						vmap.push_back(tmp);
+					}
+				}
+			}
+			vector<PointImgTypeDef>::iterator k = vmap.begin();
+			vmap.erase(k);
+		}
+
+	return true;
 }
 bool Point_link(zxhImageDataT<short> &imgRot,zxhImageDataT<short>&imgRotCent,vector<PointImgTypeDef> &vpbitu,int R)
 {
 	zxhImageDataT<short> imgRot_cormarg;
 	imgRot_cormarg.NewImage(imgRot.GetImageInfo());
 	Point_show(imgRot_cormarg,vpbitu,R);
+	int NeighborNum=3;
+	for(int i=0;i<vpbitu.size();i++)
+	{
+		PointImgTypeDef PontSeed;
+		PontSeed=vpbitu[i];
+		Point_neighbor(imgRot,vpbitu,PontSeed,imgRot_cormarg,NeighborNum,R);
+	}
 	return true;
 }
 int main(int argc, char *argv[])
