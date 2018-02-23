@@ -159,6 +159,7 @@ typedef struct
 	float z;
 
 }PointCordTypeDef;
+
 typedef struct
 {
 	int x;
@@ -166,6 +167,12 @@ typedef struct
 	int z;
 	short val;
 }PointImgTypeDef;
+typedef struct
+{
+	int cunt;
+	PointImgTypeDef pont;
+	vector<PointImgTypeDef> vpont;
+}PointLinkDef;
 typedef struct
 {
 	float fMean;
@@ -4718,7 +4725,21 @@ bool FindCentPont(int nintmarg,vector<PointImgTypeDef> &vpbitu,PointImgTypeDef &
 
 	return true;
 }
-bool Point_neighbor(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu,PointImgTypeDef PontSeed,zxhImageDataT<short>&imgRot_cormarg,int NeighborNum,int R)
+bool CopyImg(zxhImageDataT<short> &imgRot,zxhImageDataT<short> &imgRot_copy)
+{
+	int ImgSize[4]={0,0,0,0};
+	imgRot_copy.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);
+	for(int it=0;it<ImgSize[3];++it)
+		for(int iz=0;iz<ImgSize[2];++iz)
+			for(int iy=0;iy<ImgSize[1];++iy)
+				for(int ix=0;ix<ImgSize[0];++ix)
+				{
+					short sint=imgRot.GetPixelGreyscale(ix,iy,iz,it);
+					imgRot_copy.SetPixelByGreyscale(ix,iy,iz,it,sint);
+				}
+				return true;
+}
+bool Point_neighbor(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu,PointImgTypeDef PontSeed,zxhImageDataT<short>&imgRot_cormarg,int NeighborNum,int R,PointLinkDef &tmplink)
 {
 		int gNbr[26][3] = { 
 		{-1, 0, 0}, \
@@ -4748,10 +4769,6 @@ bool Point_neighbor(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu
 		{ 0, 1,-1}, \
 		{ 0, 1,1}, \
 	};
-		
-		zxhImageDataT<short> imgRot_copy;
-		imgRot_copy.NewImage(imgRot.GetImageInfo());
-		imgRot_copy=imgRot;
 		SetZeroinmap(imgRot_cormarg,PontSeed);
 		SetZero(imgRot,PontSeed);
 		vector<PointImgTypeDef> vmap;
@@ -4760,6 +4777,7 @@ bool Point_neighbor(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu
 		imgRot_cormarg.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);
 		int ncout=0;
 		vector<PointImgTypeDef> vlink;
+		tmplink.pont=PontSeed;
 		while(!vmap.empty()&&ncout<NeighborNum)
 		{
 			PontSeed=vmap[0];
@@ -4774,7 +4792,7 @@ bool Point_neighbor(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu
 				tmp.y=ny;
 				tmp.z=nz;
 				tmp.val=nint;
-				if(nx>0&&nx<ImgSize[0]&&ny>0&&ny<ImgSize[1]&&nz>0&&nz<ImgSize[2]&&nint!=0)
+				if(nx>=0&&nx<ImgSize[0]&&ny>=0&&ny<ImgSize[1]&&nz>=0&&nz<ImgSize[2]&&nint!=0)
 				{
 
 					SetZero(imgRot,tmp);
@@ -4812,20 +4830,31 @@ bool Point_neighbor(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu
 			vector<PointImgTypeDef>::iterator k = vmap.begin();
 			vmap.erase(k);
 		}
-
+		tmplink.cunt=ncout;
+		tmplink.vpont=vlink;
 	return true;
 }
-bool Point_link(zxhImageDataT<short> &imgRot,zxhImageDataT<short>&imgRotCent,vector<PointImgTypeDef> &vpbitu,int R)
+bool Point_link(zxhImageDataT<short> &imgRot,zxhImageDataT<short>&imgRotCent,vector<PointImgTypeDef> &vpbitu,int R,vector<PointLinkDef> &vbitulink)
 {
 	zxhImageDataT<short> imgRot_cormarg;
 	imgRot_cormarg.NewImage(imgRot.GetImageInfo());
 	Point_show(imgRot_cormarg,vpbitu,R);
 	int NeighborNum=3;
+	zxhImageDataT<short> imgRot_copy,imgRot_cormarg_copy;
+		imgRot_copy.NewImage(imgRot.GetImageInfo());
+		imgRot_cormarg_copy.NewImage(imgRot_cormarg.GetImageInfo());
 	for(int i=0;i<vpbitu.size();i++)
 	{
 		PointImgTypeDef PontSeed;
 		PontSeed=vpbitu[i];
-		Point_neighbor(imgRot,vpbitu,PontSeed,imgRot_cormarg,NeighborNum,R);
+		PointLinkDef tmplink;
+		CopyImg(imgRot,imgRot_copy);
+		CopyImg(imgRot_cormarg,imgRot_cormarg_copy);
+		Point_neighbor(imgRot,vpbitu,PontSeed,imgRot_cormarg,NeighborNum,R,tmplink);
+		vbitulink.push_back(tmplink);
+		CopyImg(imgRot_copy,imgRot);
+		CopyImg(imgRot_cormarg_copy,imgRot_cormarg);
+		
 	}
 	return true;
 }
@@ -4960,7 +4989,8 @@ int R=3;
 vector<PointImgTypeDef> vpbitu;
 	vector<PointImgTypeDef> vptroot;
 Point_select(imgRot,vCenPont,R,vpbitu,vptroot);
-Point_link(imgRot,imgRotCent,vpbitu,R);
+vector<PointLinkDef> vbitulink;
+Point_link(imgRot,imgRotCent,vpbitu,R,vbitulink);
 //----....----....----....----....----....----....
 
 /*
