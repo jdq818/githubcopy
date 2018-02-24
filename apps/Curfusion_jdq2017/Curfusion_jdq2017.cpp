@@ -3804,6 +3804,161 @@ char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_Cont.nii.gz";
 	zxh::SaveImage(&imgCountmap,chFileName2.c_str());
 	return true;
 }
+bool Calc_NumOfNei(zxhImageDataT<short>&imgReadNewRaw,zxhImageDataT<short>&imgCountmap,vector<PointImgTypeDef>&vSeedsPonts)//map line into original image in a range
+{
+	int gNbr[26][3] = { 
+		{-1, 0, 0}, \
+		{-1, -1, 0}, \
+		{-1, 1, 0}, \
+		{-1, 0, -1}, \
+		{-1, -1, -1}, \
+		{-1, -1, 1}, \
+		{-1, 1, -1}, \
+		{-1, 1, 1}, \
+		{-1, 0, 1}, \
+		{1, 0, 0}, \
+		{1, -1, 0}, \
+		{1, 1, 0}, \
+		{1, 0, -1}, \
+		{1, -1, -1}, \
+		{1, -1, 1}, \
+		{1, 1, -1}, \
+		{1, 1, 1}, \
+		{1, 0, 1}, \
+		{ 0,-1, 0}, \
+		{ 0, 1, 0}, \
+		{ 0, 0,-1}, \
+		{ 0, 0, 1},\
+		{ 0, -1,-1}, \
+		{ 0, -1,1}, \
+		{ 0, 1,-1}, \
+		{ 0, 1,1}, \
+	};
+	/*
+	int gNbr[6][3] = { {-1, 0, 0}, \
+					   { 1, 0, 0}, \
+					   { 0,-1, 0}, \
+					   { 0, 1, 0}, \
+					   { 0, 0,-1}, \
+					   { 0, 0, 1} };
+	*/
+	//store the seed points.
+				//cout the neibour points
+	int ImgNewSize[4]={1};
+	imgReadNewRaw.GetImageSize(ImgNewSize[0],ImgNewSize[1],ImgNewSize[2],ImgNewSize[3]);
+				for (int i=0;i<vSeedsPonts.size();i++)//map the vetor points to the image
+				{
+					PointImgTypeDef pseed;
+					pseed=vSeedsPonts[i];
+					for (int i = 0; i < 26; i++)
+					{
+						int nx = pseed.x + gNbr[i][0];
+						int ny = pseed.y + gNbr[i][1];
+						int nz = pseed.z + gNbr[i][2];
+						short sint=imgReadNewRaw.GetPixelGreyscale(nx,ny,nz,0);
+						if(nx>=0&&nx<ImgNewSize[0]&&ny>=0&&ny<ImgNewSize[1]&&nz>=0&&nz<ImgNewSize[2]&&sint==ZXH_Foreground)
+						{
+							int npx=(int)pseed.x;
+							int npy=(int)pseed.y;
+							int npz=(int)pseed.z;
+							short sintc=imgCountmap.GetPixelGreyscale(npx,npy,npz,0);
+							sintc=sintc+1;
+							imgCountmap.SetPixelByGreyscale(npx,npy,npz,0,sintc);
+						}
+					}
+				}
+char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_Cont.nii.gz";
+	string chFileName2(chResultName);
+	zxh::SaveImage(&imgCountmap,chFileName2.c_str());
+	return true;
+}
+bool Points_Init1(zxhImageDataT<short>&imgReadNewRaw,zxhImageDataT<short>&imgCountmap,vector<PointImgTypeDef>&vSeedsPonts)//map line into original image in a range
+{
+	int gNbr[26][3] = { 
+		{-1, 0, 0}, \
+		{-1, -1, 0}, \
+		{-1, 1, 0}, \
+		{-1, 0, -1}, \
+		{-1, -1, -1}, \
+		{-1, -1, 1}, \
+		{-1, 1, -1}, \
+		{-1, 1, 1}, \
+		{-1, 0, 1}, \
+		{1, 0, 0}, \
+		{1, -1, 0}, \
+		{1, 1, 0}, \
+		{1, 0, -1}, \
+		{1, -1, -1}, \
+		{1, -1, 1}, \
+		{1, 1, -1}, \
+		{1, 1, 1}, \
+		{1, 0, 1}, \
+		{ 0,-1, 0}, \
+		{ 0, 1, 0}, \
+		{ 0, 0,-1}, \
+		{ 0, 0, 1},\
+		{ 0, -1,-1}, \
+		{ 0, -1,1}, \
+		{ 0, 1,-1}, \
+		{ 0, 1,1}, \
+	};
+	/*
+	int gNbr[6][3] = { {-1, 0, 0}, \
+					   { 1, 0, 0}, \
+					   { 0,-1, 0}, \
+					   { 0, 1, 0}, \
+					   { 0, 0,-1}, \
+					   { 0, 0, 1} };
+	*/
+	//store the seed points.
+	
+	int ImgNewSize[4]={1};
+	imgReadNewRaw.GetImageSize(ImgNewSize[0],ImgNewSize[1],ImgNewSize[2],ImgNewSize[3]);
+	for(int it=0;it<ImgNewSize[3];++it)
+		for(int iz=0;iz<ImgNewSize[2];++iz)
+			for(int iy=0;iy<ImgNewSize[1];++iy)
+				for(int ix=0;ix<ImgNewSize[0];++ix)
+				{
+					short sint=imgReadNewRaw.GetPixelGreyscale(ix,iy,iz,it);
+					if(sint==ZXH_Foreground)
+					{
+						PointImgTypeDef pseed;
+						pseed.x=ix;
+						pseed.y=iy;
+						pseed.z=iz;
+						pseed.val=0;
+						vSeedsPonts.push_back(pseed);
+					}
+
+				}
+				//cout the neibour points
+
+				for (int i=0;i<vSeedsPonts.size();i++)//map the vetor points to the image
+				{
+					PointImgTypeDef pseed;
+					pseed=vSeedsPonts[i];
+					for (int i = 0; i < 26; i++)
+					{
+						int nx = pseed.x + gNbr[i][0];
+						int ny = pseed.y + gNbr[i][1];
+						int nz = pseed.z + gNbr[i][2];
+						short sint=imgReadNewRaw.GetPixelGreyscale(nx,ny,nz,0);
+						if(nx>=0&&nx<ImgNewSize[0]&&ny>=0&&ny<ImgNewSize[1]&&nz>=0&&nz<ImgNewSize[2]&&sint==ZXH_Foreground)
+						{
+							int npx=(int)pseed.x;
+							int npy=(int)pseed.y;
+							int npz=(int)pseed.z;
+							short sintc=imgCountmap.GetPixelGreyscale(npx,npy,npz,0);
+							sintc=sintc+1;
+							imgCountmap.SetPixelByGreyscale(npx,npy,npz,0,sintc);
+						}
+					}
+				}
+char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_Cont.nii.gz";
+	string chFileName2(chResultName);
+	zxh::SaveImage(&imgCountmap,chFileName2.c_str());
+	return true;
+}
 bool Coutmap_vec(zxhImageDataT<short>&imgCountmap,std::vector<std::vector<std::vector<int> > > &BW,std::vector<std::vector<std::vector<int> > > &BW1)
 {
 
@@ -4309,30 +4464,7 @@ void SelCen(int ImgSize[4],std::vector<std::vector<std::vector<int> > > &BW1,std
 	string chFileName2(chResultName);
 	zxh::SaveImage(&imgCenLabel,chFileName2.c_str());
 }
-bool BifurDec(zxhImageDataT<short>&imgReadNewRaw)
-{
-	zxhImageDataT<short>imgCountmap;
-	imgCountmap.NewImage( imgReadNewRaw.GetImageInfo() );
-	init_img(imgCountmap);
-	Points_Init(imgReadNewRaw,imgCountmap);
-			int ImgSize[4]={1};
-	imgCountmap.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);
-	std::vector<std::vector<std::vector<int> > > BW(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
-	std::vector<std::vector<std::vector<int> > > BW1(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
-	int zz=BW1.size();
-	int zz1=BW.size();
-	Coutmap_vec(imgCountmap,BW,BW1);
-	zxhImageDataT<short>imgLabel;
-	imgLabel.NewImage( imgReadNewRaw.GetImageInfo() );
-		int NumberOfLabs=0;
-	BWLABEL3(ImgSize,BW,BW1,NumberOfLabs,imgLabel);
-	//select the center point
-	std::vector<std::vector<std::vector<int> > > BW2(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
-		zxhImageDataT<short> imgCenLabel;
-	imgCenLabel.NewImage( imgReadNewRaw.GetImageInfo() );
-	SelCen(ImgSize,BW1,BW2,NumberOfLabs,imgCenLabel);
-	return true;
-}
+
 bool fillRunVectors(Matrix<int, 4, 14> A, int& NumberOfRuns, vector<int>& stRun, vector<int>& enRun, vector<int>& rowRun)
 {
     for (int i = 0; i < A.rows(); i++)
@@ -4479,6 +4611,30 @@ bool GetBrPontsInOrder(zxhImageDataT<short> &imgRotCent,vector <PointImgTypeDef>
 				sort(vCenPont.begin(),vCenPont.end(),cmp);
 	return true;
 }
+bool BWLABEL3W2(int imgSize[3],std::vector<std::vector<std::vector<int> > > A,std::vector<std::vector<std::vector<int> > > &B,int &NumberOfLabs)
+{
+	vector<int> stRun;
+	vector<int> enRun;
+	vector<int> rowRun;
+	int NumberOfRuns=0;
+	vector<int> runLabels;
+		//
+	FILLRUNVECTORS(A,NumberOfRuns,stRun,enRun,rowRun);
+	//
+	if(NumberOfRuns==0)
+	{
+		NumberOfLabs=0;
+		return true;
+	}
+	vector<pair<int, int>> equivalences;
+	int offset=1;
+	FIRSTPASS_1(imgSize,stRun,enRun,rowRun,NumberOfRuns,runLabels, equivalences, offset);
+	replaceSameLabel(runLabels,equivalences);
+	std::vector<int>::iterator biggest = std::max_element(std::begin(runLabels), std::end(runLabels));  
+	NumberOfLabs=*biggest;
+	BACKLABELEDW(imgSize,A,B,stRun, enRun, rowRun, NumberOfRuns,runLabels);
+	return true;
+}
 bool BWLABEL3W(int imgSize[3],std::vector<std::vector<std::vector<int> > > A,std::vector<std::vector<std::vector<int> > > &B,int &NumberOfLabs)
 {
 	vector<int> stRun;
@@ -4548,6 +4704,16 @@ bool Reglabel1(int nSOfRe,std::vector<std::vector<std::vector<int> > > &Region,s
 	BWLABEL3W(ImgSize,Region,Region_Lab,NumberOfLabs);
 
 	Gen_region(ImgSize,Region,Region_Lab);
+	return true;
+}
+bool Reglabel2(int nSOfRe,std::vector<std::vector<std::vector<int> > > &Region,std::vector<std::vector<std::vector<int> > > &Region_Lab,int &NumberOfLabs)
+{
+	int ImgSize[3]={nSOfRe,nSOfRe,nSOfRe};
+
+	BWLABEL3W2(ImgSize,Region,Region_Lab,NumberOfLabs);
+	if(NumberOfLabs==0)
+		return true;
+	//Gen_region(ImgSize,Region,Region_Lab);
 	return true;
 }
 bool Point_anglevec(zxhImageDataT<short> &imgRot,PointImgTypeDef PontImg,int R)
@@ -4640,6 +4806,70 @@ bool Point_anglevec1(zxhImageDataT<short> &imgRot,PointImgTypeDef PontImg,int R,
 
 	return true;
 }
+bool Point_anglevec2(zxhImageDataT<short> &imgRot,PointImgTypeDef PontImg,int R,int &NumberOfAngvecLabs)
+{
+	int ImgSize[4]={0,0,0,0};
+	imgRot.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);
+	int nSOfRe=2*R+1;
+	if(PontImg.x>R&&PontImg.y>R&&PontImg.z>R&&(PontImg.x+R)<=ImgSize[0]&&(PontImg.y+R)<=ImgSize[1]&&(PontImg.z+R)<=ImgSize[2])
+	{
+		std::vector<std::vector<std::vector<int> > > Region(nSOfRe,vector<vector<int> >(nSOfRe,vector<int>(nSOfRe,0)));  
+		for(int z=0;z<nSOfRe;z++)  
+		{  
+			for (int x=0;x<nSOfRe;x++)  
+			{  
+				for (int y=0;y<nSOfRe;y++)  
+				{  
+
+					int imgposi[4]={PontImg.x-R+x,PontImg.y-R+y,PontImg.z-R+z,0};
+					if(x==R&&y==R&&z==R)
+					{
+						Region[z][x][y]=0;
+					}
+					else
+					{
+						Region[z][x][y]=imgRot.GetPixelGreyscale(imgposi[0],imgposi[1],imgposi[2],imgposi[3]);
+					}
+					}
+
+			}
+		}
+		int NumberOfLabs=0;
+		std::vector<std::vector<std::vector<int> > > Region_Lab(nSOfRe,vector<vector<int> >(nSOfRe,vector<int>(nSOfRe,0)));  
+		//Reglabel2(nSOfRe,Region,Region_Lab,NumberOfLabs);
+	
+	//std::vector<std::vector<std::vector<int> > > Region_Angvec(nSOfRe,vector<vector<int> >(nSOfRe,vector<int>(nSOfRe,0)));  
+		//Anglevc(nSOfRe,Region,Region_Angvec);
+		//
+		
+		int RegSize[3]={nSOfRe,nSOfRe,nSOfRe};
+		std::vector<std::vector<std::vector<int> > > Region_Angvec_Lab(nSOfRe,vector<vector<int> >(nSOfRe,vector<int>(nSOfRe,0)));  
+		BWLABEL3W2(RegSize,Region,Region_Lab,NumberOfAngvecLabs);
+			if(NumberOfLabs==0)
+		{
+			NumberOfAngvecLabs=0;
+			return true;
+		}
+
+	}
+
+	return true;
+}
+bool Calc_ConRegOfNei(zxhImageDataT<short>&imgReadNewRaw,zxhImageDataT<short>&imgCountConNeimap,vector<PointImgTypeDef>&vSeedsPonts)
+{
+	int ImgNewSize[4]={1};
+	imgReadNewRaw.GetImageSize(ImgNewSize[0],ImgNewSize[1],ImgNewSize[2],ImgNewSize[3]);
+				for (int i=0;i<vSeedsPonts.size();i++)//map the vetor points to the image
+				{
+					PointImgTypeDef pseed;
+					pseed=vSeedsPonts[i];
+					int R=1;
+					int AngNum=1;
+			Point_anglevec2(imgReadNewRaw,pseed,R,AngNum);
+				}
+
+	return true;
+}
 bool Point_select(zxhImageDataT<short> &imgRot,vector <PointImgTypeDef> &vCenPont,int R,vector<PointImgTypeDef> &vpbitu,vector<PointImgTypeDef> &vptroot)
 {
 	for (int i=0;i<vCenPont.size();i++)
@@ -4647,6 +4877,10 @@ bool Point_select(zxhImageDataT<short> &imgRot,vector <PointImgTypeDef> &vCenPon
 		PointImgTypeDef PontImg;
 		PontImg=vCenPont[i];
 		int AngNum=0;
+		if(i==40)
+		{
+			int xxxxx=0;
+		}
 		Point_anglevec1(imgRot,PontImg,R,AngNum);
 		if(AngNum==3)
 		{
@@ -4858,6 +5092,39 @@ bool Point_link(zxhImageDataT<short> &imgRot,zxhImageDataT<short>&imgRotCent,vec
 	}
 	return true;
 }
+bool BifurDec(zxhImageDataT<short>&imgReadNewRaw)
+{
+	
+	zxhImageDataT<short>imgCountmap,imgCountConNeimap;
+	imgCountmap.NewImage( imgReadNewRaw.GetImageInfo() );
+	init_img(imgCountmap);
+	vector<PointImgTypeDef> vSeedsPonts;
+	Points_Init1(imgReadNewRaw,imgCountmap,vSeedsPonts);
+	//count the number of neighbor points
+	//Calc_NumOfNei(imgReadNewRaw,imgCountConNeimap,vSeedsPonts);
+	//calculate the connected region of the neighbor poins
+	imgCountConNeimap.NewImage( imgReadNewRaw.GetImageInfo() );
+	init_img(imgCountConNeimap);
+	Calc_ConRegOfNei(imgReadNewRaw,imgCountConNeimap,vSeedsPonts);
+			int ImgSize[4]={1};
+	imgCountmap.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);
+	std::vector<std::vector<std::vector<int> > > BW(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
+	std::vector<std::vector<std::vector<int> > > BW1(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
+	int zz=BW1.size();
+	int zz1=BW.size();
+	//mark the candidate points
+	Coutmap_vec(imgCountmap,BW,BW1);
+	zxhImageDataT<short>imgLabel;
+	imgLabel.NewImage( imgReadNewRaw.GetImageInfo() );
+		int NumberOfLabs=0;
+	BWLABEL3(ImgSize,BW,BW1,NumberOfLabs,imgLabel);
+	//select the center point
+	std::vector<std::vector<std::vector<int> > > BW2(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
+		zxhImageDataT<short> imgCenLabel;
+	imgCenLabel.NewImage( imgReadNewRaw.GetImageInfo() );
+	SelCen(ImgSize,BW1,BW2,NumberOfLabs,imgCenLabel);
+	return true;
+}
 int main(int argc, char *argv[])
 {
 	//if( argc < 4 )
@@ -4937,28 +5204,29 @@ int main(int argc, char *argv[])
 	//
 	
     //---...----...----....
- //   string strfilenameraw =  "J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CAE_ME_L.nii.gz";
-	//	//read the raw image
-	//zxhImageDataT<short> imgReadRaw;
-	//if( zxh::OpenImage( &imgReadRaw, strfilenameraw ) == false )
-	//{
-	//	std::cerr << "Raw image(nifti-file) is not found!"; 
-	//	return -1;
-	//}
-	//char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new.txt";
-	//vector<PointCordTypeDef> vAdpoints;
-	//ReadCA2Txt(vAdpoints,Points_3D_Filename);
-	//zxhImageDataT<short>imgReadNewRaw;
-	//imgReadNewRaw.NewImage( imgReadRaw.GetImageInfo() );
-	//MapModelPointsToImage(imgReadNewRaw,vAdpoints);
-	////store the points as image
-	//char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot.nii.gz";
-	//string chFileName2(chResultName);
-	//zxh::SaveImage(&imgReadNewRaw,chFileName2.c_str());
+	//get the central points
+	   string strfilenameraw =  "J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CAE_ME_L.nii.gz";
+		//read the raw image
+	zxhImageDataT<short> imgReadRaw;
+	if( zxh::OpenImage( &imgReadRaw, strfilenameraw ) == false )
+	{
+		std::cerr << "Raw image(nifti-file) is not found!"; 
+		return -1;
+	}
+	char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new.txt";
+	vector<PointCordTypeDef> vAdpoints;
+	ReadCA2Txt(vAdpoints,Points_3D_Filename);
+	zxhImageDataT<short>imgReadNewRaw;
+	imgReadNewRaw.NewImage( imgReadRaw.GetImageInfo() );
+	MapModelPointsToImage(imgReadNewRaw,vAdpoints);
+	//store the points as image
+	char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot.nii.gz";
+	string chFileName2(chResultName);
+	zxh::SaveImage(&imgReadNewRaw,chFileName2.c_str());
 
 
-	//vector<PointCordTypeDef> vBifurpoints;
-	//BifurDec(imgReadNewRaw);
+	vector<PointCordTypeDef> vBifurpoints;
+	BifurDec(imgReadNewRaw);
 	//---...----...----....
 	
 	
@@ -4966,31 +5234,32 @@ int main(int argc, char *argv[])
 
 
 //----....----....----....----....----....----....
-string strfilenameraw_rot =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot.nii.gz";
-zxhImageDataT<short> imgRot;
-if( zxh::OpenImage( &imgRot, strfilenameraw_rot ) == false )
-{
-	std::cerr << "Raw image(nifti-file) is not found!"; 
-	return -1;
-}
-
-string strfilenameraw_rotCent =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_CentLab.nii.gz";
-zxhImageDataT<short> imgRotCent;
-if( zxh::OpenImage( &imgRotCent, strfilenameraw_rotCent ) == false )
-{
-	std::cerr << "Raw image(nifti-file) is not found!"; 
-	return -1;
-}
-//get the branch points in order
-
-vector <PointImgTypeDef> vCenPont;
-GetBrPontsInOrder(imgRotCent,vCenPont);
-int R=3;
-vector<PointImgTypeDef> vpbitu;
-	vector<PointImgTypeDef> vptroot;
-Point_select(imgRot,vCenPont,R,vpbitu,vptroot);
-vector<PointLinkDef> vbitulink;
-Point_link(imgRot,imgRotCent,vpbitu,R,vbitulink);
+//get the link
+//string strfilenameraw_rot =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot.nii.gz";
+//zxhImageDataT<short> imgRot;
+//if( zxh::OpenImage( &imgRot, strfilenameraw_rot ) == false )
+//{
+//	std::cerr << "Raw image(nifti-file) is not found!"; 
+//	return -1;
+//}
+//
+//string strfilenameraw_rotCent =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_CentLab.nii.gz";
+//zxhImageDataT<short> imgRotCent;
+//if( zxh::OpenImage( &imgRotCent, strfilenameraw_rotCent ) == false )
+//{
+//	std::cerr << "Raw image(nifti-file) is not found!"; 
+//	return -1;
+//}
+////get the branch points in order
+//
+//vector <PointImgTypeDef> vCenPont;
+//GetBrPontsInOrder(imgRotCent,vCenPont);
+//int R=3;
+//vector<PointImgTypeDef> vpbitu;
+//	vector<PointImgTypeDef> vptroot;
+//Point_select(imgRot,vCenPont,R,vpbitu,vptroot);
+//vector<PointLinkDef> vbitulink;
+//Point_link(imgRot,imgRotCent,vpbitu,R,vbitulink);
 //----....----....----....----....----....----....
 
 /*
