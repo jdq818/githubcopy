@@ -4175,6 +4175,107 @@ bool FIRSTPASS_1(int imgSize[4],vector<int>& stRun, vector<int>& enRun, vector<i
 	}
 	return true;
 }
+	bool FIRSTPASS_2(int imgSize[4],vector<int>& stRun, vector<int>& enRun, vector<int>& rowRun, int &NumberOfRuns,
+    vector<int>& runLabels, vector<pair<int, int>>& equivalences, int offset)
+{
+	runLabels.assign(NumberOfRuns, 0);
+	int idxLabel = 1;
+
+	int curRowIdx = 0;
+	int LcurRowIdx = 0;
+	int firstRunOnCur = 0;
+	int firstRunOnPre = 0;
+	int lastRunOnPre = -1;
+
+	int HcurRowIdx[3] = {0,0,0};
+	int HfirstRunOnPre[4] = {0,0,0};
+	int HlastRunOnPre[4] ={-1,-1,-1,-1};
+	for (int i = 0; i < NumberOfRuns; i++)
+	{
+		//calculate the start and then end position of the runsl
+		if (rowRun[i] != curRowIdx)
+		{
+			curRowIdx = rowRun[i];
+			LcurRowIdx=curRowIdx-1;
+			int numrunbe=0;
+			int numrunone=0;
+
+			for(int m=0;m<rowRun.size();m++)
+			{
+
+				if(rowRun[m]==LcurRowIdx)
+				{
+					numrunone++;
+				}
+			}
+			if(curRowIdx%imgSize[0]==0||numrunone==0)
+			{
+				firstRunOnPre = 0;
+				lastRunOnPre = -1;
+			}
+			else
+			{
+				firstRunOnPre = i - numrunone;
+				lastRunOnPre = i -1;
+			}
+			HfirstRunOnPre[0] = firstRunOnPre;
+			HlastRunOnPre[0] =lastRunOnPre;
+
+			//max(rowRun[i]-3,0);
+			//calculate the number of runs between current run and the front run.
+			HcurRowIdx[0]=max(rowRun[i]-imgSize[0],-1);
+			HcurRowIdx[1]=max(rowRun[i]-imgSize[0]-1,-1);
+			HcurRowIdx[2]=max(rowRun[i]-imgSize[0]+1,-1);
+			// the front row
+			int CRow=HcurRowIdx[0];
+			int CFRP=0;
+			int CLRP=-1;
+			Calc3Hrun(i,rowRun,CRow,curRowIdx,CFRP,CLRP);
+			HfirstRunOnPre[1] = CFRP;
+			HlastRunOnPre[1] =CLRP;
+			//the up front row
+			CRow=HcurRowIdx[1];
+			if(CRow%imgSize[0]==imgSize[0]-1)
+			{
+				CFRP=0;
+				CLRP=-1;
+			}
+			else
+			{
+				Calc3Hrun(i,rowRun,CRow,curRowIdx,CFRP,CLRP);
+			}
+			HfirstRunOnPre[2] = 0;
+			HlastRunOnPre[2] =-1;
+			//the down front row
+			CRow=HcurRowIdx[2];
+			if(CRow%imgSize[0]==0)
+			{
+				CFRP=0;
+				CLRP=-1;
+			}
+			else
+			{
+				Calc3Hrun(i,rowRun,CRow,curRowIdx,CFRP,CLRP);
+			}
+			HfirstRunOnPre[3] = 0;
+			HlastRunOnPre[3] =-1;
+			
+
+		}
+		for (int h=0;h<4;h++)
+		{
+			int HCFRP=HfirstRunOnPre[h];
+			int HCLRP=HlastRunOnPre[h];
+			CalcLables(i,HCFRP,HCLRP,stRun,enRun,runLabels,equivalences, offset);
+		}
+		if (runLabels[i] == 0) // 没有与前一列的任何run重合
+		{
+			runLabels[i] = idxLabel++;
+		}
+
+	}
+	return true;
+}
 bool FIRSTPASS(int imgSize[4],vector<int>& stRun, vector<int>& enRun, vector<int>& rowRun, int &NumberOfRuns,
     vector<int>& runLabels, vector<pair<int, int>>& equivalences, int offset)
 {
@@ -4627,8 +4728,8 @@ bool BWLABEL3W2(int imgSize[3],std::vector<std::vector<std::vector<int> > > A,st
 		return true;
 	}
 	vector<pair<int, int>> equivalences;
-	int offset=1;
-	FIRSTPASS_1(imgSize,stRun,enRun,rowRun,NumberOfRuns,runLabels, equivalences, offset);
+	int offset=0;
+	FIRSTPASS_2(imgSize,stRun,enRun,rowRun,NumberOfRuns,runLabels, equivalences, offset);
 	replaceSameLabel(runLabels,equivalences);
 	std::vector<int>::iterator biggest = std::max_element(std::begin(runLabels), std::end(runLabels));  
 	NumberOfLabs=*biggest;
@@ -4834,7 +4935,6 @@ bool Point_anglevec2(zxhImageDataT<short> &imgRot,PointImgTypeDef PontImg,int R,
 
 			}
 		}
-		int NumberOfLabs=0;
 		std::vector<std::vector<std::vector<int> > > Region_Lab(nSOfRe,vector<vector<int> >(nSOfRe,vector<int>(nSOfRe,0)));  
 		//Reglabel2(nSOfRe,Region,Region_Lab,NumberOfLabs);
 	
@@ -4845,28 +4945,31 @@ bool Point_anglevec2(zxhImageDataT<short> &imgRot,PointImgTypeDef PontImg,int R,
 		int RegSize[3]={nSOfRe,nSOfRe,nSOfRe};
 		std::vector<std::vector<std::vector<int> > > Region_Angvec_Lab(nSOfRe,vector<vector<int> >(nSOfRe,vector<int>(nSOfRe,0)));  
 		BWLABEL3W2(RegSize,Region,Region_Lab,NumberOfAngvecLabs);
-			if(NumberOfLabs==0)
-		{
-			NumberOfAngvecLabs=0;
-			return true;
-		}
 
 	}
 
 	return true;
 }
-bool Calc_ConRegOfNei(zxhImageDataT<short>&imgReadNewRaw,zxhImageDataT<short>&imgCountConNeimap,vector<PointImgTypeDef>&vSeedsPonts)
+bool Calc_ConRegOfNei(zxhImageDataT<short>&imgRot,zxhImageDataT<short>&imgCountConNeimap,vector<PointImgTypeDef>&vSeedsPonts)
 {
 	int ImgNewSize[4]={1};
-	imgReadNewRaw.GetImageSize(ImgNewSize[0],ImgNewSize[1],ImgNewSize[2],ImgNewSize[3]);
-				for (int i=0;i<vSeedsPonts.size();i++)//map the vetor points to the image
-				{
-					PointImgTypeDef pseed;
-					pseed=vSeedsPonts[i];
-					int R=1;
-					int AngNum=1;
-			Point_anglevec2(imgReadNewRaw,pseed,R,AngNum);
-				}
+	imgRot.GetImageSize(ImgNewSize[0],ImgNewSize[1],ImgNewSize[2],ImgNewSize[3]);
+	for (int i=0;i<vSeedsPonts.size();i++)//map the vetor points to the image
+	{
+		PointImgTypeDef pseed;
+		pseed=vSeedsPonts[i];
+		int R=1;
+		int AngNum=1;
+		if(pseed.x==160&&pseed.y==83&&pseed.z==109)
+		{
+			int x=0;
+		}
+		Point_anglevec2(imgRot,pseed,R,AngNum);
+		imgCountConNeimap.SetPixelByGreyscale(pseed.x,pseed.y,pseed.z,0,AngNum);
+	}
+	char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_Nei_Con.nii.gz";
+	string chFileName2(chResultName);
+	zxh::SaveImage(&imgCountConNeimap,chFileName2.c_str());
 
 	return true;
 }
