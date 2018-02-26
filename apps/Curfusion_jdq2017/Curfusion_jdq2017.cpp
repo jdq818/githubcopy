@@ -53,6 +53,7 @@
 #include <vector>
 #include <math.h>
 #include<stdlib.h>
+#include <stdio.h>
 
 #include "zxhImageData.h"
 #include "zxhImageGipl.h"
@@ -3867,8 +3868,15 @@ bool Calc_NumOfNei(zxhImageDataT<short>&imgReadNewRaw,zxhImageDataT<short>&imgCo
 						}
 					}
 				}
+			
 char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_Cont.nii.gz";
-	string chFileName2(chResultName);
+	string chFileName2(chResultName);	
+	fstream _file;
+     _file.open(chFileName2,ios::in);
+	  if(_file)
+     {
+		remove(chResultName);
+	  }
 	zxh::SaveImage(&imgCountmap,chFileName2.c_str());
 	return true;
 }
@@ -3931,32 +3939,6 @@ bool Points_Init1(zxhImageDataT<short>&imgReadNewRaw,zxhImageDataT<short>&imgCou
 					}
 
 				}
-				//cout the neibour points
-
-				for (int i=0;i<vSeedsPonts.size();i++)//map the vetor points to the image
-				{
-					PointImgTypeDef pseed;
-					pseed=vSeedsPonts[i];
-					for (int i = 0; i < 26; i++)
-					{
-						int nx = pseed.x + gNbr[i][0];
-						int ny = pseed.y + gNbr[i][1];
-						int nz = pseed.z + gNbr[i][2];
-						short sint=imgReadNewRaw.GetPixelGreyscale(nx,ny,nz,0);
-						if(nx>=0&&nx<ImgNewSize[0]&&ny>=0&&ny<ImgNewSize[1]&&nz>=0&&nz<ImgNewSize[2]&&sint==ZXH_Foreground)
-						{
-							int npx=(int)pseed.x;
-							int npy=(int)pseed.y;
-							int npz=(int)pseed.z;
-							short sintc=imgCountmap.GetPixelGreyscale(npx,npy,npz,0);
-							sintc=sintc+1;
-							imgCountmap.SetPixelByGreyscale(npx,npy,npz,0,sintc);
-						}
-					}
-				}
-char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_Cont.nii.gz";
-	string chFileName2(chResultName);
-	zxh::SaveImage(&imgCountmap,chFileName2.c_str());
 	return true;
 }
 bool Coutmap_vec(zxhImageDataT<short>&imgCountmap,std::vector<std::vector<std::vector<int> > > &BW,std::vector<std::vector<std::vector<int> > > &BW1)
@@ -3988,6 +3970,44 @@ bool Coutmap_vec(zxhImageDataT<short>&imgCountmap,std::vector<std::vector<std::v
 						BW[iz][ix][iy]=1;  
 					}
 				}
+	return true;
+}
+bool Coutmap_vec1(zxhImageDataT<short>&imgCountmap,zxhImageDataT<short>&imgCountConNeimap,std::vector<std::vector<std::vector<int> > > &BW,std::vector<std::vector<std::vector<int> > > &BW1)
+{
+
+		int ImgSize[4]={1};
+	imgCountmap.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);
+		//init
+	for(int z=0;z<ImgSize[2];z++)  
+    {  
+        for (int x=0;x<ImgSize[0];x++)  
+        {  
+            for (int y=0;y<ImgSize[1];y++)  
+            {  
+                BW[z][x][y]=0;  
+                
+            }  
+        }  
+    }  
+	BW1.assign(BW.begin(),BW.end());
+	zxhImageDataT<short> imgCountmapAndNei;
+	imgCountmapAndNei.NewImage(imgCountmap.GetImageInfo());
+	for(int it=0;it<ImgSize[3];++it)
+		for(int iz=0;iz<ImgSize[2];++iz)
+			for(int ix=0;ix<ImgSize[0];++ix)
+				for(int iy=0;iy<ImgSize[1];++iy)
+				{
+					short scon=imgCountmap.GetPixelGreyscale(ix,iy,iz,it);
+					short sconnei=imgCountConNeimap.GetPixelGreyscale(ix,iy,iz,it);
+					if(scon>=5||scon==1||sconnei)
+					{
+						BW[iz][ix][iy]=1;  
+						imgCountmapAndNei.SetPixelByGreyscale(ix,iy,iz,it,1);
+					}
+				}
+				char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_CountAndNei.nii.gz";
+				string chFileName2(chResultName);
+				zxh::SaveImage(&imgCountmapAndNei,chFileName2.c_str());
 	return true;
 }
 bool FILLRUNVECTORS(std::vector<std::vector<std::vector<int> > > A, int& NumberOfRuns, vector<int>& stRun, vector<int>& enRun, vector<int>& rowRun)
@@ -5204,26 +5224,26 @@ bool BifurDec(zxhImageDataT<short>&imgReadNewRaw)
 	vector<PointImgTypeDef> vSeedsPonts;
 	Points_Init1(imgReadNewRaw,imgCountmap,vSeedsPonts);
 	//count the number of neighbor points
-	//Calc_NumOfNei(imgReadNewRaw,imgCountConNeimap,vSeedsPonts);
-	//calculate the connected region of the neighbor poins
-	imgCountConNeimap.NewImage( imgReadNewRaw.GetImageInfo() );
+	imgCountConNeimap.NewImage(imgReadNewRaw.GetImageInfo() );
 	init_img(imgCountConNeimap);
+	Calc_NumOfNei(imgReadNewRaw,imgCountmap,vSeedsPonts);
+	//calculate the connected region of the neighbor poins
 	Calc_ConRegOfNei(imgReadNewRaw,imgCountConNeimap,vSeedsPonts);
-			int ImgSize[4]={1};
+	int ImgSize[4]={1};
 	imgCountmap.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);
 	std::vector<std::vector<std::vector<int> > > BW(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
 	std::vector<std::vector<std::vector<int> > > BW1(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
 	int zz=BW1.size();
 	int zz1=BW.size();
 	//mark the candidate points
-	Coutmap_vec(imgCountmap,BW,BW1);
+	Coutmap_vec1(imgCountmap,imgCountConNeimap,BW,BW1);
 	zxhImageDataT<short>imgLabel;
 	imgLabel.NewImage( imgReadNewRaw.GetImageInfo() );
 		int NumberOfLabs=0;
 	BWLABEL3(ImgSize,BW,BW1,NumberOfLabs,imgLabel);
 	//select the center point
 	std::vector<std::vector<std::vector<int> > > BW2(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
-		zxhImageDataT<short> imgCenLabel;
+	zxhImageDataT<short> imgCenLabel;
 	imgCenLabel.NewImage( imgReadNewRaw.GetImageInfo() );
 	SelCen(ImgSize,BW1,BW2,NumberOfLabs,imgCenLabel);
 	return true;
