@@ -377,12 +377,14 @@ operator() ( const std::vector<Point> &path,
   {
     // resample up to nextIdx
     double nextLen = curLen + (path[curIdx+1]-path[curIdx]).length();
+	double cnLen=nextLen-curLen;
     while (sampleNr*samplingDistance < nextLen)
     {
       // linearly interpolate between curIdx at curLen, and curIdx at nextLen
       double dist = sampleNr * samplingDistance;
       double a = (nextLen-dist) / (nextLen - curLen); // weight for curIdx
       double b = (dist - curLen) / (nextLen - curLen);// weight for curIdx+1
+
       _resultPath.push_back(a*path[curIdx] + b*path[curIdx+1]);
       ++sampleNr;
     }

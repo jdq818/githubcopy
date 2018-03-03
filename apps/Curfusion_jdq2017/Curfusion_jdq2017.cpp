@@ -262,6 +262,20 @@ void WriteCA2Txt(vector<PointCordTypeDef> vPoints,char *chFileName)
 	}	
 
 }
+void WriteCA2Txt_jdq(std::vector<jdq2017::point3D> vPoints,char *chFileName)
+{
+	ofstream WriteFileTxt(chFileName);
+	int nPointNum = vPoints.size();
+	float fImgPixel[3];	
+	for (int i = 0; i < nPointNum; i++)
+	{
+		fImgPixel[0] = vPoints[i]._x;
+		fImgPixel[1] = vPoints[i]._y;
+		fImgPixel[2] = vPoints[i]._z;
+		WriteFileTxt << right<<fixed<<setprecision(4) <<fImgPixel[0] << " " << fImgPixel[1] << " " << fImgPixel[2] << '\n';
+	}	
+
+}
 void WriteCA2Txt_Skip(vector<PointCordTypeDef> vPoints,char *chFileName)
 {
 	ofstream WriteFileTxt(chFileName);
@@ -4024,7 +4038,7 @@ bool AdEvePontsBySec_ALL(float clSampling,vector<PointCordTypeDef>&vUnorgaPoints
 	{
 
 		//collet points from vUnorgaPointsWorld within a ball of radius H
-		if(i==50)
+		if(i==972||i==988||i==989)
 		{
 			int x=0;
 		}
@@ -4124,10 +4138,11 @@ bool AdEvePontsBySec_ALL(float clSampling,vector<PointCordTypeDef>&vUnorgaPoints
 			//if(fcos<0.6)//it is a bifurcation point
 			bRoM1=true;
 			nINUM++;
-			char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D.txt";
-			WriteCA2Txt(vUnorgaPointsWorld,Points_3D_Filename);
-			if(i==306)
+		
+		    if(i==972||i==988||i==989)
 			{
+				char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_Local.txt";
+			WriteCA2Txt(vLocalPointsInBallWorld,Points_3D_Filename);
 			char *Points_2D_Filename="F:/Coronary_0/code/Resutsfusion/Points_2D.txt";
 			WriteCA2Txt(Pro_ForRovRotaLocalPointsInBallWorld,Points_2D_Filename);
 			char *Bef_Points_2D_Filename="F:/Coronary_0/code/Resutsfusion/Bef_Points_2D.txt";
@@ -4185,10 +4200,23 @@ bool ResamEveryCurve(vector<vLinesDef> &vnLine,double clSampling)
 	std::vector<jdq2017::point3D> vLtemp;
 	for (int i=0;i<vnLine.size();i++)
 	{
-		vLtemp=vnLine[i].vLine;
+	
+		vLtemp=vnLine[i].vLine;	
+		if(i==1)
+		{
+			char *Points_3D_ori_Filename="F:/Coronary_0/code/Resutsfusion/v1_ori.txt";
+	//WriteCA2Txt_Skip(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
+	WriteCA2Txt_jdq(vLtemp,Points_3D_ori_Filename);
+		}
 		jdq2017::ResamplePaths<jdq2017::point3D> resamplerr;
 		resamplerr(vLtemp, clSampling);
 		vLtemp = resamplerr.resultPath();
+			if(i==1)
+		{
+			char *Points_3D_ori_Filename="F:/Coronary_0/code/Resutsfusion/v1_res.txt";
+	//WriteCA2Txt_Skip(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
+	WriteCA2Txt_jdq(vLtemp,Points_3D_ori_Filename);
+		}
 		vnLine[i].vLine=vLtemp;
 	}
 	return true;
@@ -4225,6 +4253,18 @@ bool MapModelPointsToImage(zxhImageDataT<short>&imgReadNewRaw,vector<PointCordTy
 		PointMAPT.y=PointPos[1];
 		PointMAPT.z=PointPos[2];
 		vPathPointsWorldMAPT.push_back(PointMAPT);
+		if(PointPos[0]==212&&PointPos[1]==184&&PointPos[2]==60)
+		{
+			int xxx=0;
+		}
+		if(PointPos[0]==212&&PointPos[1]==185&&PointPos[2]==60)
+		{
+			int xxx=0;
+		}
+		if(PointPos[0]==213&&PointPos[1]==185&&PointPos[2]==60)
+		{
+			int xxx=0;
+		}
 		imgReadNewRaw.SetPixelByGreyscale(PointPos[0],PointPos[1],PointPos[2],PointPos[3],ZXH_Foreground);
 
 	}
@@ -5821,18 +5861,23 @@ int main(int argc, char *argv[])
 	//Store the unique points
 	vector<PointCordTypeDef> vUnorgaPointsWorld_ori;
 	StorUnique(vUnorgaPointsWorld);	
+	//first fusion
 	vUnorgaPointsWorld_ori.assign(vUnorgaPointsWorld.begin(),vUnorgaPointsWorld.end());
 	
 	char *Points_3D_ori_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_ori_n.txt";
 	//WriteCA2Txt_Skip(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
 	WriteCA2Txt(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
 	//adjust every points by section
-	AdEvePontsBySec_ALL(clSampling,vUnorgaPointsWorld, vnLine);
+	AdEvePontsBySec_ALL(clSampling,vUnorgaPointsWorld,vnLine);
 	
 	char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new.txt";
 	//WriteCA2Txt_Skip(vUnorgaPointsWorld,Points_3D_Filename);
 	WriteCA2Txt(vUnorgaPointsWorld,Points_3D_Filename);
-	
+	//second fusion
+	/*char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new.txt";
+	vector<PointCordTypeDef> vAdpoints;
+	ReadCA2Txt(vAdpoints,Points_3D_Filename);
+	AdEvePontsBySec_ALL(clSampling,vUnorgaPointsWorld, vnLine);*/
 
 	//--..--..--..--..
 	//----------------------
