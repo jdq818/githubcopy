@@ -4270,7 +4270,27 @@ bool MapModelPointsToImage(zxhImageDataT<short>&imgReadNewRaw,vector<PointCordTy
 	}
 	return true;
 }
+bool MapImgPointsToImage(zxhImageDataT<short>&imgReadNewRaw,vector<PointImgTypeDef> vPathPointsWorld)//map line into original image in a range
+{
+	int ImgNewSize[4]={1};
+	imgReadNewRaw.GetImageSize(ImgNewSize[0],ImgNewSize[1],ImgNewSize[2],ImgNewSize[3]);
 
+		for(int it=0;it<ImgNewSize[3];++it)
+			for(int iz=0;iz<ImgNewSize[2];++iz)
+				for(int iy=0;iy<ImgNewSize[1];++iy)
+					for(int ix=0;ix<ImgNewSize[0];++ix)
+					{
+						imgReadNewRaw.SetPixelByGreyscale(ix,iy,iz,it,0);
+					}
+	for (int i=0;i<vPathPointsWorld.size();i++)
+	{
+		PointImgTypeDef tmp;
+		tmp=vPathPointsWorld[i];
+		imgReadNewRaw.SetPixelByGreyscale(tmp.x,tmp.y,tmp.z,0,ZXH_Foreground);
+
+	}
+	return true;
+}
 bool Points_Init(zxhImageDataT<short>&imgReadNewRaw,zxhImageDataT<short>&imgCountmap)//map line into original image in a range
 {
 	int gNbr[26][3] = { 
@@ -5597,6 +5617,70 @@ bool Point_show(zxhImageDataT<short>&imgRot_cormarg,vector<PointImgTypeDef> &vpb
 	// zxh::SaveImage(&imgRot_cormarg,chFileName2.c_str());
 	 return true;
 }
+bool Point_show_biro(zxhImageDataT<short>&imgRot_cormarg,vector<PointImgTypeDef> &vpbitu,vector<PointImgTypeDef> &vproot,int &R)
+{
+
+	 for(int i=0;i<vpbitu.size();i++)
+	 {
+		 PointImgTypeDef tmpPont;
+		 tmpPont=vpbitu[i];
+		 imgRot_cormarg.SetPixelByGreyscale(tmpPont.x,tmpPont.y,tmpPont.z,0,tmpPont.val);
+		 for (int nz = tmpPont.z-R; nz <=tmpPont.z+R; nz++)
+			 for (int nx = tmpPont.x-R; nx <=tmpPont.x+R; nx++)
+				 for (int ny = tmpPont.y-R; ny <=tmpPont.y+R; ny++)
+				 {
+					 if(nx==tmpPont.x-R||nx==tmpPont.x+R||ny==tmpPont.y-R||ny==tmpPont.y+R||nz==tmpPont.z-R||nz==tmpPont.z+R)
+					 {
+						 imgRot_cormarg.SetPixelByGreyscale(nx,ny,nz,0,tmpPont.val);
+					 }
+				 }
+	 }
+	  for(int i=0;i<vproot.size();i++)
+	 {
+		 PointImgTypeDef tmpPont;
+		 tmpPont=vproot[i];
+		 int roval=vpbitu.size()+tmpPont.val;
+		 imgRot_cormarg.SetPixelByGreyscale(tmpPont.x,tmpPont.y,tmpPont.z,0,roval);
+		 for (int nz = tmpPont.z-R; nz <=tmpPont.z+R; nz++)
+			 for (int nx = tmpPont.x-R; nx <=tmpPont.x+R; nx++)
+				 for (int ny = tmpPont.y-R; ny <=tmpPont.y+R; ny++)
+				 {
+					 if(nx==tmpPont.x-R||nx==tmpPont.x+R||ny==tmpPont.y-R||ny==tmpPont.y+R||nz==tmpPont.z-R||nz==tmpPont.z+R)
+					 {
+						 imgRot_cormarg.SetPixelByGreyscale(nx,ny,nz,0,roval);
+					 }
+				 }
+	 }
+	 char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_CentMargLab1.nii.gz";
+	 string chFileName2(chResultName);
+	 zxh::SaveImage(&imgRot_cormarg,chFileName2.c_str());
+	 return true;
+}
+bool Point_show_ro(zxhImageDataT<short>&imgRot_cormarg,vector<PointImgTypeDef> &vpbitu,vector<PointImgTypeDef> &vproot,int &R)
+{
+
+	  for(int i=0;i<vproot.size();i++)
+	 {
+		 PointImgTypeDef tmpPont;
+		 tmpPont=vproot[i];
+		 int roval=vpbitu.size()+tmpPont.val;
+		 imgRot_cormarg.SetPixelByGreyscale(tmpPont.x,tmpPont.y,tmpPont.z,0,roval);
+		 for (int nz = tmpPont.z-R; nz <=tmpPont.z+R; nz++)
+			 for (int nx = tmpPont.x-R; nx <=tmpPont.x+R; nx++)
+				 for (int ny = tmpPont.y-R; ny <=tmpPont.y+R; ny++)
+				 {
+					 if(nx==tmpPont.x-R||nx==tmpPont.x+R||ny==tmpPont.y-R||ny==tmpPont.y+R||nz==tmpPont.z-R||nz==tmpPont.z+R)
+					 {
+						 imgRot_cormarg.SetPixelByGreyscale(nx,ny,nz,0,roval);
+					 }
+				 }
+	 }
+	 char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_RootMargLab1.nii.gz";
+	 string chFileName2(chResultName);
+	 zxh::SaveImage(&imgRot_cormarg,chFileName2.c_str());
+	 return true;
+}
+
 bool SetZeroinmap(zxhImageDataT<short> &imgRot_cormarg,PointImgTypeDef PontSeed)
 {
 	int ImgSize[4]={0,0,0,0};
@@ -5631,6 +5715,65 @@ bool FindCentPont(int nintmarg,vector<PointImgTypeDef> &vpbitu,PointImgTypeDef &
 			break;
 		}
 	}
+
+	return true;
+}
+bool FindCentPont_biro(int nintmarg,vector<PointImgTypeDef> &vpbitu,vector<PointImgTypeDef> &vproot,PointImgTypeDef &CentPont)
+{
+	CentPont.val=-1;
+	for(int i=0;i<vpbitu.size();i++)
+	{
+		PointImgTypeDef tmp;
+		tmp=vpbitu[i];
+		if(nintmarg==tmp.val)
+		{
+			CentPont=tmp;
+			break;
+		}
+	}
+	if(CentPont.val==-1)
+	{
+		for(int i=0;i<vproot.size();i++)
+	{
+		PointImgTypeDef tmp;
+		tmp=vproot[i];
+		if(nintmarg==vpbitu.size()+tmp.val)
+		{
+			CentPont=tmp;
+			CentPont.val=vpbitu.size()+tmp.val;
+			break;
+		}
+	}
+	}
+
+	return true;
+}
+bool FindCentPont_ro(int nintmarg,vector<PointImgTypeDef> &vpbitu,vector<PointImgTypeDef> &vproot,vector<PointLinkDef> &vbitulink,PointLinkDef &tmplink,PointImgTypeDef &CentPont)
+{
+	
+		for(int i=0;i<vpbitu.size();i++)
+	{
+		PointImgTypeDef tmp;
+		tmp=vpbitu[i];
+		if(nintmarg==tmp.val)
+		{
+			return false;
+			
+		}
+	}
+
+		for(int i=0;i<vproot.size();i++)
+	{
+		PointImgTypeDef tmp;
+		tmp=vproot[i];
+		if(nintmarg==tmp.val)
+		{
+			CentPont=tmp;
+			CentPont.val=vpbitu.size()+tmp.val;
+			break;
+		}
+	}
+	
 
 	return true;
 }
@@ -5743,6 +5886,196 @@ bool Point_neighbor(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu
 		tmplink.vpont=vlink;
 	return true;
 }
+bool Point_neighbor_biro(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu,vector<PointImgTypeDef> &vproot,PointImgTypeDef PontSeed,zxhImageDataT<short>&imgRot_cormarg,int NeighborNum,int R,PointLinkDef &tmplink)
+{
+		int gNbr[26][3] = { 
+		{-1, 0, 0}, \
+		{-1, -1, 0}, \
+		{-1, 1, 0}, \
+		{-1, 0, -1}, \
+		{-1, -1, -1}, \
+		{-1, -1, 1}, \
+		{-1, 1, -1}, \
+		{-1, 1, 1}, \
+		{-1, 0, 1}, \
+		{1, 0, 0}, \
+		{1, -1, 0}, \
+		{1, 1, 0}, \
+		{1, 0, -1}, \
+		{1, -1, -1}, \
+		{1, -1, 1}, \
+		{1, 1, -1}, \
+		{1, 1, 1}, \
+		{1, 0, 1}, \
+		{ 0,-1, 0}, \
+		{ 0, 1, 0}, \
+		{ 0, 0,-1}, \
+		{ 0, 0, 1},\
+		{ 0, -1,-1}, \
+		{ 0, -1,1}, \
+		{ 0, 1,-1}, \
+		{ 0, 1,1}, \
+	};
+		SetZeroinmap(imgRot_cormarg,PontSeed);
+		SetZero(imgRot,PontSeed);
+		vector<PointImgTypeDef> vmap;
+		vmap.push_back(PontSeed);
+		int ImgSize[4]={0,0,0,0};
+		imgRot_cormarg.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);
+		int ncout=0;
+		vector<PointImgTypeDef> vlink;
+		tmplink.pont=PontSeed;
+		while(!vmap.empty()&&ncout<NeighborNum)
+		{
+			PontSeed=vmap[0];
+			for (int i = 0; i < 26; i++)
+			{
+				int nx = PontSeed.x + gNbr[i][0];
+				int ny = PontSeed.y + gNbr[i][1];
+				int nz = PontSeed.z + gNbr[i][2];
+				int nint=imgRot.GetPixelGreyscale(nx,ny,nz,0);
+				PointImgTypeDef tmp;
+				tmp.x=nx;
+				tmp.y=ny;
+				tmp.z=nz;
+				tmp.val=nint;
+				if(nx>=0&&nx<ImgSize[0]&&ny>=0&&ny<ImgSize[1]&&nz>=0&&nz<ImgSize[2]&&nint!=0)
+				{
+
+					SetZero(imgRot,tmp);
+					int nintmarg=imgRot_cormarg.GetPixelGreyscale(nx,ny,nz,0);
+					if(nintmarg!=0)
+					{
+						PointImgTypeDef CentPont;
+						FindCentPont_biro(nintmarg,vpbitu,vproot,CentPont);
+						vlink.push_back(CentPont);
+						ncout++;
+						if(ncout==NeighborNum)
+							break;
+						SetZeroinmap(imgRot_cormarg,CentPont);
+						for (int i = 0; i < 26; i++)
+						{
+							int nx1 = tmp.x + gNbr[i][0];
+							int ny1 = tmp.y + gNbr[i][1];
+							int nz1 = tmp.z + gNbr[i][2];
+							if(nx1>0&&nx1<ImgSize[0]&&ny1>0&&ny1<ImgSize[1]&&nz1>0&&nz1<ImgSize[2])
+							{
+								PointImgTypeDef tmp1;
+								tmp1.x=nx1;
+								tmp1.y=ny1;
+								tmp1.z=nz1;
+								SetZero(imgRot,tmp1);
+							}
+						}
+					}
+					else
+					{
+						vmap.push_back(tmp);
+					}
+				}
+			}
+			vector<PointImgTypeDef>::iterator k = vmap.begin();
+			vmap.erase(k);
+		}
+		tmplink.cunt=ncout;
+		tmplink.vpont=vlink;
+	return true;
+}
+bool Point_neighbor_bifurroot(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu,vector<PointImgTypeDef> &vproot,PointImgTypeDef PontSeed,zxhImageDataT<short>&imgRot_cormarg,int NeighborNum,int R,vector<PointLinkDef> &vbitulink,PointLinkDef &tmplink)
+{
+		int gNbr[26][3] = { 
+		{-1, 0, 0}, \
+		{-1, -1, 0}, \
+		{-1, 1, 0}, \
+		{-1, 0, -1}, \
+		{-1, -1, -1}, \
+		{-1, -1, 1}, \
+		{-1, 1, -1}, \
+		{-1, 1, 1}, \
+		{-1, 0, 1}, \
+		{1, 0, 0}, \
+		{1, -1, 0}, \
+		{1, 1, 0}, \
+		{1, 0, -1}, \
+		{1, -1, -1}, \
+		{1, -1, 1}, \
+		{1, 1, -1}, \
+		{1, 1, 1}, \
+		{1, 0, 1}, \
+		{ 0,-1, 0}, \
+		{ 0, 1, 0}, \
+		{ 0, 0,-1}, \
+		{ 0, 0, 1},\
+		{ 0, -1,-1}, \
+		{ 0, -1,1}, \
+		{ 0, 1,-1}, \
+		{ 0, 1,1}, \
+	};
+		SetZeroinmap(imgRot_cormarg,PontSeed);
+		SetZero(imgRot,PontSeed);
+		vector<PointImgTypeDef> vmap;
+		vmap.push_back(PontSeed);
+		int ImgSize[4]={0,0,0,0};
+		imgRot_cormarg.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);
+		int ncout=0;
+		vector<PointImgTypeDef> vlink;
+		tmplink.pont=PontSeed;
+		while(!vmap.empty()&&ncout<NeighborNum)
+		{
+			PontSeed=vmap[0];
+			for (int i = 0; i < 26; i++)
+			{
+				int nx = PontSeed.x + gNbr[i][0];
+				int ny = PontSeed.y + gNbr[i][1];
+				int nz = PontSeed.z + gNbr[i][2];
+				int nint=imgRot.GetPixelGreyscale(nx,ny,nz,0);
+				PointImgTypeDef tmp;
+				tmp.x=nx;
+				tmp.y=ny;
+				tmp.z=nz;
+				tmp.val=nint;
+				if(nx>=0&&nx<ImgSize[0]&&ny>=0&&ny<ImgSize[1]&&nz>=0&&nz<ImgSize[2]&&nint!=0)
+				{
+
+					SetZero(imgRot,tmp);
+					int nintmarg=imgRot_cormarg.GetPixelGreyscale(nx,ny,nz,0);
+					if(nintmarg!=0)
+					{
+						PointImgTypeDef CentPont;
+						FindCentPont_ro(nintmarg,vpbitu,vproot,vbitulink,tmplink,CentPont);
+						vlink.push_back(CentPont);
+						ncout++;
+						if(ncout>=NeighborNum)
+							break;
+						SetZeroinmap(imgRot_cormarg,CentPont);
+						for (int i = 0; i < 26; i++)
+						{
+							int nx1 = tmp.x + gNbr[i][0];
+							int ny1 = tmp.y + gNbr[i][1];
+							int nz1 = tmp.z + gNbr[i][2];
+							if(nx1>0&&nx1<ImgSize[0]&&ny1>0&&ny1<ImgSize[1]&&nz1>0&&nz1<ImgSize[2])
+							{
+								PointImgTypeDef tmp1;
+								tmp1.x=nx1;
+								tmp1.y=ny1;
+								tmp1.z=nz1;
+								SetZero(imgRot,tmp1);
+							}
+						}
+					}
+					else
+					{
+						vmap.push_back(tmp);
+					}
+				}
+			}
+			vector<PointImgTypeDef>::iterator k = vmap.begin();
+			vmap.erase(k);
+		}
+		tmplink.cunt=ncout;
+		tmplink.vpont=vlink;
+	return true;
+}
 bool Point_link(zxhImageDataT<short> &imgRot,zxhImageDataT<short>&imgRotCent,vector<PointImgTypeDef> &vpbitu,int R,vector<PointLinkDef> &vbitulink)
 {
 	zxhImageDataT<short> imgRot_cormarg;
@@ -5767,6 +6100,55 @@ bool Point_link(zxhImageDataT<short> &imgRot,zxhImageDataT<short>&imgRotCent,vec
 	}
 	return true;
 }
+bool Point_link_biro(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu,vector<PointImgTypeDef> &vproot,int &R,vector<PointLinkDef> &vbitulink)
+{
+	zxhImageDataT<short> imgRot_cormarg;
+	imgRot_cormarg.NewImage(imgRot.GetImageInfo());
+	Point_show_biro(imgRot_cormarg,vpbitu,vproot,R);
+	int NeighborNum=3;
+	zxhImageDataT<short> imgRot_copy,imgRot_cormarg_copy;
+		imgRot_copy.NewImage(imgRot.GetImageInfo());
+		imgRot_cormarg_copy.NewImage(imgRot_cormarg.GetImageInfo());
+	for(int i=0;i<vpbitu.size();i++)
+	{
+		PointImgTypeDef PontSeed;
+		PontSeed=vpbitu[i];
+		PointLinkDef tmplink;
+		CopyImg(imgRot,imgRot_copy);
+		CopyImg(imgRot_cormarg,imgRot_cormarg_copy);
+		Point_neighbor_biro(imgRot,vpbitu,vproot,PontSeed,imgRot_cormarg,NeighborNum,R,tmplink);
+		vbitulink.push_back(tmplink);
+		CopyImg(imgRot_copy,imgRot);
+		CopyImg(imgRot_cormarg_copy,imgRot_cormarg);
+		
+	}
+	return true;
+}
+bool Point_link_ro(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu,vector<PointImgTypeDef> &vproot,int &R,vector<PointLinkDef> &vbitulink,vector<PointLinkDef> &vbiturootlink)
+{
+	zxhImageDataT<short> imgRot_cormarg;
+	imgRot_cormarg.NewImage(imgRot.GetImageInfo());
+	Point_show_ro(imgRot_cormarg,vpbitu,vproot,R);
+	int NeighborNum=3;
+	zxhImageDataT<short> imgRot_copy,imgRot_cormarg_copy;
+		imgRot_copy.NewImage(imgRot.GetImageInfo());
+		imgRot_cormarg_copy.NewImage(imgRot_cormarg.GetImageInfo());
+	for(int i=0;i<vpbitu.size();i++)
+	{
+		PointImgTypeDef PontSeed;
+		PontSeed=vpbitu[i];
+		PointLinkDef tmplink;
+		CopyImg(imgRot,imgRot_copy);
+		CopyImg(imgRot_cormarg,imgRot_cormarg_copy);
+		Point_neighbor_bifurroot(imgRot,vpbitu,vproot,PontSeed,imgRot_cormarg,NeighborNum,R,vbitulink,tmplink);
+		vbiturootlink.push_back(tmplink);
+		CopyImg(imgRot_copy,imgRot);
+		CopyImg(imgRot_cormarg_copy,imgRot_cormarg);
+		
+	}
+	return true;
+}
+
 bool BifurDec(zxhImageDataT<short>&imgReadNewRaw)
 {
 	
@@ -5816,68 +6198,68 @@ int main(int argc, char *argv[])
 	
 	//read and resample the curve
 	//--..--..--..--..
-     string strfilenameraw =  "J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CAE_ME_L.nii.gz";
-	char *chRefCurvefilename ="J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CL0.vtk";
-	char *chTarCurvefilename="J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CL1.vtk";
+ //    string strfilenameraw =  "J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CAE_ME_L.nii.gz";
+	//char *chRefCurvefilename ="J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CL0.vtk";
+	//char *chTarCurvefilename="J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CL1.vtk";
 
 
-	
-	char *chCurvesfolder="F:/Coronary_0/code/Resutsfusion/DS_For_ResFu/dataset00/";
-	vector<vLinesDef> vnLine;
-	ReadFilesInAfolder(chCurvesfolder,vnLine);
-	
+	//
+	//char *chCurvesfolder="F:/Coronary_0/code/Resutsfusion/DS_For_ResFu/dataset00/";
+	//vector<vLinesDef> vnLine;
+	//ReadFilesInAfolder(chCurvesfolder,vnLine);
+	//
 
-	float flength=0,flengthdeform=0,fsectionlength=0;
-	float ResampleNUM=9999;
-	//read the raw image
-	zxhImageDataT<short> imgReadRaw;
-	if( zxh::OpenImage( &imgReadRaw, strfilenameraw ) == false )
-	{
-		std::cerr << "Raw image(nifti-file) is not found!"; 
-		return -1;
-	}
-	std::vector<jdq2017::point3D> ref;
-	//std::vector<jdq2017::point3D> cl;
-	if (! jdq2017::readCenterlinevtk(chRefCurvefilename, ref) )//read the reference line
-	{
-		if (!outputOneLine) 
-		{
-			std::cerr << "Error in reading input data" << std::endl;
-			return 1;
-		} 
+	//float flength=0,flengthdeform=0,fsectionlength=0;
+	//float ResampleNUM=9999;
+	////read the raw image
+	//zxhImageDataT<short> imgReadRaw;
+	//if( zxh::OpenImage( &imgReadRaw, strfilenameraw ) == false )
+	//{
+	//	std::cerr << "Raw image(nifti-file) is not found!"; 
+	//	return -1;
+	//}
+	//std::vector<jdq2017::point3D> ref;
+	////std::vector<jdq2017::point3D> cl;
+	//if (! jdq2017::readCenterlinevtk(chRefCurvefilename, ref) )//read the reference line
+	//{
+	//	if (!outputOneLine) 
+	//	{
+	//		std::cerr << "Error in reading input data" << std::endl;
+	//		return 1;
+	//	} 
 
-	}
+	//}
 
 
-	//calculate the distance step
-	int nSamNUM=500;
-	double clSampling = pathLength(ref)/nSamNUM;
+	////calculate the distance step
+	//int nSamNUM=500;
+	//double clSampling = pathLength(ref)/nSamNUM;
 
-	ResamEveryCurve(vnLine,clSampling);
-	
-	//Transform all the points of lines into unorganized points
-	vector<PointCordTypeDef> vUnorgaPointsWorld;
-	TransAllPontsIntoUnorga(vnLine,vUnorgaPointsWorld);
-	//Store the unique points
-	vector<PointCordTypeDef> vUnorgaPointsWorld_ori;
-	StorUnique(vUnorgaPointsWorld);	
-	//first fusion
-	vUnorgaPointsWorld_ori.assign(vUnorgaPointsWorld.begin(),vUnorgaPointsWorld.end());
-	
-	char *Points_3D_ori_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_ori_n.txt";
-	//WriteCA2Txt_Skip(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
-	WriteCA2Txt(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
-	//adjust every points by section
-	AdEvePontsBySec_ALL(clSampling,vUnorgaPointsWorld,vnLine);
-	
-	char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new.txt";
-	//WriteCA2Txt_Skip(vUnorgaPointsWorld,Points_3D_Filename);
-	WriteCA2Txt(vUnorgaPointsWorld,Points_3D_Filename);
-	//second fusion
-	/*char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new.txt";
-	vector<PointCordTypeDef> vAdpoints;
-	ReadCA2Txt(vAdpoints,Points_3D_Filename);
-	AdEvePontsBySec_ALL(clSampling,vUnorgaPointsWorld, vnLine);*/
+	//ResamEveryCurve(vnLine,clSampling);
+	//
+	////Transform all the points of lines into unorganized points
+	//vector<PointCordTypeDef> vUnorgaPointsWorld;
+	//TransAllPontsIntoUnorga(vnLine,vUnorgaPointsWorld);
+	////Store the unique points
+	//vector<PointCordTypeDef> vUnorgaPointsWorld_ori;
+	//StorUnique(vUnorgaPointsWorld);	
+	////first fusion
+	//vUnorgaPointsWorld_ori.assign(vUnorgaPointsWorld.begin(),vUnorgaPointsWorld.end());
+	//
+	//char *Points_3D_ori_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_ori_n.txt";
+	////WriteCA2Txt_Skip(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
+	//WriteCA2Txt(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
+	////adjust every points by section
+	//AdEvePontsBySec_ALL(clSampling,vUnorgaPointsWorld,vnLine);
+	//
+	//char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new.txt";
+	////WriteCA2Txt_Skip(vUnorgaPointsWorld,Points_3D_Filename);
+	//WriteCA2Txt(vUnorgaPointsWorld,Points_3D_Filename);
+	////second fusion
+	///*char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new.txt";
+	//vector<PointCordTypeDef> vAdpoints;
+	//ReadCA2Txt(vAdpoints,Points_3D_Filename);
+	//AdEvePontsBySec_ALL(clSampling,vUnorgaPointsWorld, vnLine);*/
 
 	//--..--..--..--..
 	//----------------------
@@ -5887,8 +6269,8 @@ int main(int argc, char *argv[])
 	
     //---...----...----....
 	//get the central points
-	//   string strfilenameraw =  "J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CAE_ME_L.nii.gz";
-	//	//read the raw image
+	//string strfilenameraw =  "J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CAE_ME_L.nii.gz";
+	////read the raw image
 	//zxhImageDataT<short> imgReadRaw;
 	//if( zxh::OpenImage( &imgReadRaw, strfilenameraw ) == false )
 	//{
@@ -5916,7 +6298,7 @@ int main(int argc, char *argv[])
 
 
 //----....----....----....----....----....----....
-//get the link
+//get the link of the bifurcation points
 //string strfilenameraw_rot =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot.nii.gz";
 //zxhImageDataT<short> imgRot;
 //if( zxh::OpenImage( &imgRot, strfilenameraw_rot ) == false )
@@ -5942,7 +6324,53 @@ int main(int argc, char *argv[])
 //Point_select(imgRot,vCenPont,R,vpbitu,vptroot);
 //vector<PointLinkDef> vbitulink;
 //Point_link(imgRot,imgRotCent,vpbitu,R,vbitulink);
+////save bifurcation points as img
+//zxhImageDataT<short>imgVPbituRaw,imgVProotRaw;
+//imgVPbituRaw.NewImage( imgRot.GetImageInfo() );
+//MapImgPointsToImage(imgVPbituRaw,vpbitu);
+//char *chResultName1="F:/Coronary_0/code/Resutsfusion/CAE_VPbitu.nii.gz";
+//string chFileName1(chResultName1);
+//zxh::SaveImage(&imgVPbituRaw,chFileName1.c_str());
+////
+//imgVProotRaw.NewImage( imgRot.GetImageInfo() );
+//MapImgPointsToImage(imgVProotRaw,vptroot);
+//char *chResultName2="F:/Coronary_0/code/Resutsfusion/CAE_VProot.nii.gz";
+//string chFileName2(chResultName2);
+//zxh::SaveImage(&imgVProotRaw,chFileName2.c_str());
+
 //----....----....----....----....----....----....
+//-----.....-----.....-----.....-----.....-----.....-----.....-----.....
+//get the link of the bifurcation points and root points
+string strfilenameraw_rot =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot.nii.gz";
+zxhImageDataT<short> imgRot;
+if( zxh::OpenImage( &imgRot, strfilenameraw_rot ) == false )
+{
+	std::cerr << "Raw image(nifti-file) is not found!"; 
+	return -1;
+}
+
+string strfilenameraw_rotCent =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_CentLab.nii.gz";
+zxhImageDataT<short> imgRotCent;
+if( zxh::OpenImage( &imgRotCent, strfilenameraw_rotCent ) == false )
+{
+	std::cerr << "Raw image(nifti-file) is not found!"; 
+	return -1;
+}
+//get the branch points in order
+
+vector <PointImgTypeDef> vCenPont;
+GetBrPontsInOrder(imgRotCent,vCenPont);
+int R=3;
+vector<PointImgTypeDef> vpbitu;
+	vector<PointImgTypeDef> vptroot;
+Point_select(imgRot,vCenPont,R,vpbitu,vptroot);
+vector<PointLinkDef> vbitulink;
+Point_link(imgRot,imgRotCent,vpbitu,R,vbitulink);
+vector<PointLinkDef> vbiturootlink;
+Point_link_ro(imgRot,vpbitu,vptroot,R,vbitulink,vbiturootlink);
+
+
+//-----.....-----.....-----.....-----.....-----.....-----.....-----.....
 
 /*
 //testing BWLABEL3
