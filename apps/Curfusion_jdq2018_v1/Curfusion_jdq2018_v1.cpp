@@ -261,6 +261,34 @@ void WriteVtk(vector< PointCordTypeDef > PointCord, char* chFileName)
 	iVtkWriter->SetFileName(chFileName);
 	iVtkWriter->Write();
 }
+void WriteVtk_jdq(std::vector<jdq2017::point3D> PointCord, char* chFileName)
+{
+	vtkSmartPointer<vtkPoints> iPoints = vtkSmartPointer<vtkPoints>::New();
+
+	int nPointNum = PointCord.size();
+
+	for (int i = 0; i < nPointNum; i++)
+	{
+		iPoints->InsertNextPoint(PointCord[i]._x, PointCord[i]._y, PointCord[i]._z);
+	}	
+
+	vtkSmartPointer<vtkPolyLine> iLine = vtkSmartPointer<vtkPolyLine>::New();
+	iLine->GetPointIds()->SetNumberOfIds(nPointNum);
+	for (int i = 0; i < nPointNum; i++)
+	{
+		iLine->GetPointIds()->SetId(i, i);
+	}
+
+	vtkSmartPointer<vtkUnstructuredGrid> iGrid = vtkUnstructuredGrid::New();
+	iGrid->Allocate(1, 1);	
+	iGrid->InsertNextCell(iLine->GetCellType(), iLine->GetPointIds());
+	iGrid->SetPoints(iPoints);
+
+	vtkSmartPointer<vtkUnstructuredGridWriter> iVtkWriter = vtkUnstructuredGridWriter::New();
+	iVtkWriter->SetInput(iGrid);
+	iVtkWriter->SetFileName(chFileName);
+	iVtkWriter->Write();
+}
 void WriteCA2Txt(vector<PointCordTypeDef> vPoints,char *chFileName)
 {
 	ofstream WriteFileTxt(chFileName);
@@ -1963,32 +1991,34 @@ bool ETrans4_rref(Matrix4f &MA)
 		}
 		if(MA(j,j)!=0)
 		{
+			float k=1/MA(j,j);
+			MA=Eijmul4(j,k)*MA;
 			//eleminate the non-zero element
-			for(int i=j+1;i<=3;i++)
+			for(int i=0;i<=3;i++)
 			{
-				if(MA(i,j)==0)continue;
+				if(i==j)continue;
 				temp =MA(i,j)/MA(j,j);
 				//cout<<MA<<endl;
 				MA=Eijmulex4(i,j,-temp)*MA;
 			}
+			
 		}
-		if(MA(j,j)!=0)
+	}
+	//cout<<MA<<endl;
+	for(int i=0;i<=3;i++)//j=col
+	{
+		if(MA(i,i)==0)
 		{
-		float k=1/MA(j,j);
-		MA=Eijmul4(j,k)*MA;
-		}
-			if(MA(j,j)!=0)
-		{
-			//eleminate the non-zero element
-			for(int i=0;i<j;i++)
+			for(int j=i;j<=3;j++)
 			{
-				if(MA(i,j)==0)continue;
-				temp =MA(i,j)/MA(j,j);
-				//cout<<MA<<endl;
-				MA=Eijmulex4(i,j,-temp)*MA;
+				if(MA(j,j)==1)
+				{
+					MA=Eijexchange4(i,j)*MA;
+				}
 			}
 		}
 	}
+		//cout<<MA<<endl;
 	 return true;
 }
 bool ETrans3_rref(Matrix3f &MA)
@@ -2009,33 +2039,34 @@ bool ETrans3_rref(Matrix3f &MA)
 		}
 		if(MA(j,j)!=0)
 		{
+			float k=1/MA(j,j);
+			MA=Eijmul3(j,k)*MA;
 			//eleminate the non-zero element
-			for(int i=j+1;i<=2;i++)
+			for(int i=0;i<=2;i++)
 			{
-				if(MA(i,j)==0)continue;
+				if(i==j)continue;
 				temp =MA(i,j)/MA(j,j);
 				//cout<<MA<<endl;
 				MA=Eijmulex3(i,j,-temp)*MA;
 			}
+
 		}
-		if(MA(j,j)!=0)
+	}
+	//cout<<MA<<endl;
+	for(int i=0;i<=2;i++)//j=col
+	{
+		if(MA(i,i)==0)
 		{
-		float k=1/MA(j,j);
-		MA=Eijmul3(j,k)*MA;
-		}
-			if(MA(j,j)!=0)
-		{
-			//eleminate the non-zero element
-			for(int i=0;i<j;i++)
+			for(int j=i;j<=2;j++)
 			{
-				if(MA(i,j)==0)continue;
-				temp =MA(i,j)/MA(j,j);
-				//cout<<MA<<endl;
-				MA=Eijmulex3(i,j,-temp)*MA;
+				if(MA(j,j)==1)
+				{
+					MA=Eijexchange3(i,j)*MA;
+				}
 			}
 		}
 	}
-	 return true;
+	return true;
 }
 bool ETrans3(Matrix3f &MA)
 {
@@ -2606,7 +2637,12 @@ float CalcRp_CL(vector<PointCLTypeDef> &vPathRotedPointsWorld)
 		fdelta_x2=fdelta_x2+(vPathRotedPointsWorld[i].x-fmeanx)*(vPathRotedPointsWorld[i].x-fmeanx);
 		fdelta_y2=fdelta_y2+(vPathRotedPointsWorld[i].y-fmeany)*(vPathRotedPointsWorld[i].y-fmeany);
 	}
-	 float feff=fcov_xy/(sqrt(fdelta_x2)*sqrt(fdelta_y2));
+	float fd= sqrt(fdelta_x2)*sqrt(fdelta_y2);
+	if(fd==0)
+	{
+		bool bx=false;
+	}
+	 float feff=fcov_xy/fd;
 	 return feff;
 }
 bool CalcCoeMMatrix(Matrix<float,1,2> &MfirPont,float H,vector<PointCordTypeDef> &vPathRotedPointsWorld,Matrix<float,3,3> &Mcoe,Matrix<float,3,1> &Mb)
@@ -3292,12 +3328,12 @@ bool Matrix_Solve_Swithch(vector<float> vfk,vector<float> vfb,vector<float> &vx)
 }
 bool Solve_Eqs_Null(double *K,Matrix4f MA,int n,int nr,int np,vector<int>vp,vector<int>vnp)
 {
-		for(int i=0;i<n;i++)
+	for(int i=0;i<n;i++)
 		for(int j=0;j<np;j++)
 		{
 			K[i*np+j]=0;
 		}
-	
+
 		if (n>nr)
 		{
 			//no p
@@ -3324,24 +3360,19 @@ bool Solve_Eqs_Null(double *K,Matrix4f MA,int n,int nr,int np,vector<int>vp,vect
 			for(int i=0;i<vp.size();i++)
 			{
 				int ni=vp[i];
-				for(int j=0;j<np;j++)
+				for(int k=0;k<vnp.size();k++)
 				{
-						K[ni*np+j]=-MA(i,nr+j);
+					int nk=vnp[k];
+					K[ni*np+k]=-MA(ni,nk);
 				}
 			}
-
-			/*
-			}
-			for(int i=0;i<n;i++)
-			{
-			for(int j=0;j<np;j++)
-			{
-			float xxx=K[i*n+j];
-			}
-			}*/
 		}
-		return true;
+
 		
+	
+
+		return true;
+
 }
 bool Solve_Eqs_Null3(double *K,Matrix3f MA,int n,int nr,int np,vector<int>vp,vector<int>vnp)
 {
@@ -3377,9 +3408,10 @@ bool Solve_Eqs_Null3(double *K,Matrix3f MA,int n,int nr,int np,vector<int>vp,vec
 			for(int i=0;i<vp.size();i++)
 			{
 				int ni=vp[i];
-				for(int j=0;j<np;j++)
+				for(int k=0;k<vnp.size();k++)
 				{
-						K[ni*np+j]=-MA(i,nr+j);
+					int nk=vnp[k];
+					K[ni*np+k]=-MA(ni,nk);
 				}
 			}
 
@@ -3688,8 +3720,8 @@ bool PlaneFitting3(PointCordTypeDef &PfirPont,float H,vector<PointCordTypeDef> &
 		ETrans4_rref(MA);
 		for(int i=0;i<4;i++)
 		{
-			float fxxx=fabsf(MA(i,i));
-			if(fabsf(MA(i,i))==0)
+			float fxxx=(fabsf((MA(i,0))+fabsf(MA(i,1))+fabsf(MA(i,2))));
+			if(fxxx==0)
 			{
 				nxindex[i]=1;
 				nXnum--;
@@ -4394,13 +4426,12 @@ bool LocalRegLine5_CL(Matrix<float,1,2> &MfirPont,float H,vector<PointCLTypeDef>
 	int nxindex[3]={-1,-1,-1};
 
 	//elementary transformation of matrices
-
 	int nXnum=3;
 	ETrans3_rref(MA);
 	for(int i=0;i<3;i++)
 	{
 		float fxxx=fabsf(MA(i,i));
-		if(fabsf(MA(i,i))==0)
+		if(fabsf((MA(i,0))+fabsf(MA(i,1))+fabsf(MA(i,2)))==0)
 		{
 			Mabc(i,0)=1;
 			nxindex[i]=1;
@@ -4409,7 +4440,7 @@ bool LocalRegLine5_CL(Matrix<float,1,2> &MfirPont,float H,vector<PointCLTypeDef>
 	}
 	if (nXnum==1&&nxindex[0]<0)
 	{
-		cout<<"Can not regress the line;"<<endl;
+		cout<<"Cannot regress the line;"<<endl;
 			return false;
 	}
 	if(nXnum!=3)
@@ -4943,6 +4974,8 @@ bool Collet2_ALL_CL(int k,float clSampling,PointCLTypeDef PCent,float H,vector<P
 	float fb=(4*H*H-fd*fd)/4/H;
 	float fa=2*H-fb;
 	//Within the Ellipe
+	if(!vLocalPointsInBallWorld.empty())
+		vLocalPointsInBallWorld.clear();
 	for(int i=0;i<RotedvPoints.size();i++)
 	{
 		float fxyz[3]={RotedvPoints[i].x,RotedvPoints[i].y,RotedvPoints[i].z};
@@ -5425,6 +5458,27 @@ bool UpdatePosiOfvnLine(vector<PointCLTypeDef>&vUnorgaPointsWorld,vector<PointLP
 	}
 	return true;
 }
+bool OutputVnLine(vector<vLinesDef> &vnLine)
+{
+	
+	for(int i=0;i<vnLine.size();i++)
+	{
+		char *NewLine_Filename="F:/Coronary_0/code/Resutsfusion/DS_For_ResFu/dataset00_1/CL";
+		vLinesDef tmpLP=vnLine[i];
+		int nL=tmpLP.nLine;
+		std::vector<jdq2017::point3D> vtmpLine=tmpLP.vLine;;
+		char chTemp[25];
+		_itoa_s(nL, chTemp, 10);
+		int nLen1 = strlen(NewLine_Filename) + strlen(chTemp) + strlen(".vtk") + 1;
+		char *chFileName1 = (char *)malloc(nLen1);
+		strcpy(chFileName1, NewLine_Filename);
+		strcat(chFileName1, chTemp);
+		strcat(chFileName1, ".vtk");
+		WriteVtk_jdq(vtmpLine,chFileName1);
+		free(chFileName1);
+	}
+	return true;
+}
 bool AdEvePontsBySec_ALL_LP(float clSampling,vector<PointCLTypeDef>&vUnorgaPointsWorld,vector<PointLPTypeDef>&vUnorgaPointsWorld_LP,vector<vLinesDef> &vnLine,vector<vector<PointCLTypeDef>> &vvpoints)
 {
 	for(int n=0;n<2;n++)
@@ -5567,18 +5621,19 @@ bool AdEvePontsBySec_ALL_LP(float clSampling,vector<PointCLTypeDef>&vUnorgaPoint
 	}
 	return true;
 }
-bool ChangeWithAnothPont(vector<PointCLTypeDef>&Pro_ForRovRotaLocalPointsInBallWorld,vector<PointCLTypeDef>&vUnorgaPointsWorld,vector<PointCLTypeDef>&vPontsmark,vector<PointCLTypeDef>&vLocalPointsInBallWorld_ori)
+bool ChangeWithAnothPont(int i,vector<PointCLTypeDef>&Pro_ForRovRotaLocalPointsInBallWorld,vector<PointCLTypeDef>&vUnorgaPointsWorld,vector<PointCLTypeDef>&vPontsmark,vector<PointCLTypeDef>&vLocalPointsInBallWorld_ori)
 {
-	for (int i=0;i<vLocalPointsInBallWorld_ori.size();i++)
+	for (int j=0;j<vLocalPointsInBallWorld_ori.size();j++)
 	{
-		int m=vLocalPointsInBallWorld_ori[i].vLnum[0];
+		int m=vLocalPointsInBallWorld_ori[j].vLnum[0];
 		int n=vPontsmark[m].vLnum[0];
 		if(n==-1)
 		{
-			vUnorgaPointsWorld[i].x=vLocalPointsInBallWorld_ori[m].x;
-			vUnorgaPointsWorld[i].y=vLocalPointsInBallWorld_ori[m].y;
-			vUnorgaPointsWorld[i].z=vLocalPointsInBallWorld_ori[m].z;
-			vUnorgaPointsWorld[i].vLnum.push_back(vLocalPointsInBallWorld_ori[m].vLnum[0]);
+			vUnorgaPointsWorld[i].x=vLocalPointsInBallWorld_ori[j].x;
+			vUnorgaPointsWorld[i].y=vLocalPointsInBallWorld_ori[j].y;
+			vUnorgaPointsWorld[i].z=vLocalPointsInBallWorld_ori[j].z;
+			vUnorgaPointsWorld[i].vLnum[0]=vLocalPointsInBallWorld_ori[j].vLnum[0];
+			return true;
 		}
 	}
 	return true;
@@ -5603,14 +5658,15 @@ bool AdEvePontsBySec_ALL_LP1(float clSampling,vector<PointCLTypeDef>&vUnorgaPoin
 		{
 			vPontsmark[j].vLnum[0]=-1;
 		}
+		vector<PointCLTypeDef> vLocalPointsInBallWorld,vLocalPointsInBallWorld_ori;
 		while (i<vUnorgaPointsWorld.size())
 		{
-			if(i==972||i==988||i==989)
+			if(i==1949)
 			{
 				int xx=0;
 			}
 			//collet points from vUnorgaPointsWorld within a ball of radius H
-			vector<PointCLTypeDef> vLocalPointsInBallWorld,vLocalPointsInBallWorld_ori;
+			
 			PointCLTypeDef PCent=vUnorgaPointsWorld[i];
 			if(bRoM1)
 			{
@@ -5621,7 +5677,10 @@ bool AdEvePontsBySec_ALL_LP1(float clSampling,vector<PointCLTypeDef>&vUnorgaPoin
 				Collet1_CL(PCent,H,vUnorgaPointsWorld,vLocalPointsInBallWorld);
 				vLocalPointsInBallWorld_ori.assign(vLocalPointsInBallWorld.begin(),vLocalPointsInBallWorld.end());
 			}
-			
+			if(vLocalPointsInBallWorld.size()==0)
+			{
+				int xxx=0;
+			}
 			StorUnique_CL(vLocalPointsInBallWorld);	
 			//fit a plane
 			float fabc[4]={0,0,0,0};
@@ -5666,6 +5725,10 @@ bool AdEvePontsBySec_ALL_LP1(float clSampling,vector<PointCLTypeDef>&vUnorgaPoin
 
 			RotLocaRegreLineForRo_CL(i,fab,Pro_RotedvLocalPointsInBallWorld,Pro_ForRovRotaLocalPointsInBallWorld);
 			//calculate the correlation coefficient
+			if(fro>1||fro<-1)
+			{
+				int x1=0;
+			}
 			fro=CalcRp_CL(Pro_ForRovRotaLocalPointsInBallWorld);
 
 			//2D curve fitting
@@ -5712,7 +5775,8 @@ bool AdEvePontsBySec_ALL_LP1(float clSampling,vector<PointCLTypeDef>&vUnorgaPoin
 				nINUM++;
 				if(nINUM>600)
 				{
-					ChangeWithAnothPont(Pro_ForRovRotaLocalPointsInBallWorld,vUnorgaPointsWorld,vPontsmark,vLocalPointsInBallWorld_ori);
+					ChangeWithAnothPont(i,Pro_ForRovRotaLocalPointsInBallWorld,vUnorgaPointsWorld,vPontsmark,vLocalPointsInBallWorld_ori);
+					bRoM1=false;
 				}
 				/*if(i==972||i==988||i==989)
 				{
@@ -5738,10 +5802,11 @@ bool AdEvePontsBySec_ALL_LP1(float clSampling,vector<PointCLTypeDef>&vUnorgaPoin
 		strcpy(chFileName1, Points_3D_Filename);
 		strcat(chFileName1, chTemp);
 		strcat(chFileName1, ".txt");
-		WriteCA2Txt_CL(vvpoints[vvpoints.size()-1],Points_3D_Filename);
+		WriteCA2Txt_CL(vvpoints[vvpoints.size()-1],chFileName1);
 		free(chFileName1);
 		//update the position of the vnLine
 		UpdatePosiOfvnLine(vUnorgaPointsWorld,vUnorgaPointsWorld_LP,vnLine);
+	    OutputVnLine(vnLine);
 	}
 	return true;
 }
@@ -7948,7 +8013,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	std::vector<jdq2017::point3D> ref;
-	//std::vector<jdq2017::point3D> cl;
+	std::vector<jdq2017::point3D> cl;
 	if (! jdq2017::readCenterlinevtk(chRefCurvefilename, ref) )//read the reference line
 	{
 		if (!outputOneLine) 
@@ -7965,7 +8030,7 @@ int main(int argc, char *argv[])
 	double clSampling = pathLength(ref)/nSamNUM;
 
 	ResamEveryCurve(vnLine,clSampling);
-	
+	//OutputVnLine(vnLine);
 	//Transform all the points of lines into unorganized points
 	vector<PointCLTypeDef> vUnorgaPointsWorld;
 	vector<PointLPTypeDef> vUnorgaPointsWorld_LP;
@@ -7977,7 +8042,7 @@ int main(int argc, char *argv[])
 	
 	vUnorgaPointsWorld_ori.assign(vUnorgaPointsWorld.begin(),vUnorgaPointsWorld.end());
 	
-	char *Points_3D_ori_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_ori_n.txt";
+	char *Points_3D_ori_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_ori_n_1.txt";
 	//WriteCA2Txt_Skip(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
 	WriteCA2Txt_CL(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
 	
@@ -8223,69 +8288,70 @@ BWLABEL3(grdarray);
 //	return 1;
 //
 //---solve equs of no positive
-/*
-Matrix4f MA;
-//MA<<1,1,1,1,
-//0,2,1,1,
-//0,0,1,1,
-//1,1,1,1;
-MA<<1,1,1,1,
-	0,1,0.5,0.5,
-	1,1,1,1,
-	1,1,1,1;
-cout<<MA<<endl;
-Matrix<float,4,1>Mabc;
-Mabc<<0,0,0,0;
-int nxindex[4]={-1,-1,-1,-1};
-int nXnum=4;
-ETrans4_rref(MA);
-cout<<MA<<endl;
-for(int i=0;i<4;i++)
-{
-	float fxxx=fabsf(MA(i,i));
-	if(fabsf(MA(i,i))==0)
-	{
-		Mabc(i,0)=1;
-		nxindex[i]=1;
-		nXnum--;
-	}
-}
-int m=MA.rows();
-int n=MA.cols();
-int np=n-nXnum;
 
-double *K;
-K=new double[n*np];
-
-
-vector<int> vp;
-vector<int> vnp;
-for(int i=0;i<n;i++)
-{
-	int nc=nxindex[i];
-	if(nc<0)
-	{
-		vp.push_back(i);
-	}
-	else
-	{
-		vnp.push_back(i);
-	}
-
-}
-Solve_Eqs_Null(K,MA,n,nXnum,np,vp,vnp);
-// cout<<"xxx"<<endl;
+//Matrix4f MA;
+////MA<<1,1,1,1,
+////0,2,1,1,
+////0,0,1,1,
+////1,1,1,1;
+//MA<<1,0,0,0,
+//	0,0,0,0,
+//	0,0,1,1,
+//	0,1,1,1;
+//cout<<MA<<endl;
+//Matrix<float,4,1>Mabc;
+//Mabc<<0,0,0,0;
+//int nxindex[4]={-1,-1,-1,-1};
+//int nXnum=4;
+//ETrans4_rref(MA);
+//cout<<MA<<endl;
+//for(int i=0;i<4;i++)
+//{
+//	float fxxx=fabsf(MA(i,i));
+//	if(fabsf(MA(i,i))==0)
+//	{
+//		Mabc(i,0)=1;
+//		nxindex[i]=1;
+//		nXnum--;
+//	}
+//}
+//int m=MA.rows();
+//int n=MA.cols();
+//int np=n-nXnum;
+//
+//double *K;
+//K=new double[n*np];
+//
+//
+//vector<int> vp;
+//vector<int> vnp;
+//for(int i=0;i<n;i++)
+//{
+//	int nc=nxindex[i];
+//	if(nc<0)
+//	{
+//		vp.push_back(i);
+//	}
+//	else
+//	{
+//		vnp.push_back(i);
+//	}
+//
+//}
+//Solve_Eqs_Null(K,MA,n,nXnum,np,vp,vnp);
+//// cout<<"xxx"<<endl;
 //for(int i=0;i<n;i++)
 //{
 //	for(int j=0;j<np;j++)
 //	{
 //		float xxx=K[np*i+j];
-//		cout<<K[np*i+j]<<" ";
+//		cout<<xxx<<" ";
 //	}
 //	cout<<endl;
 //}
+//int x=0;
 //---solve equs of no positive
-*/
+
 }
 
  
