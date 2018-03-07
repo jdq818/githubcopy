@@ -1991,9 +1991,40 @@ bool ETrans4_rref(Matrix4f &MA)
 		}
 		if(MA(j,j)!=0)
 		{
-			float k=1/MA(j,j);
-			MA=Eijmul4(j,k)*MA;
 			//eleminate the non-zero element
+			for(int i=j+1;i<=3;i++)
+			{
+				if(MA(i,j)==0)continue;
+				temp =MA(i,j)/MA(j,j);
+				//cout<<MA<<endl;
+				MA=Eijmulex4(i,j,-temp)*MA;
+			}
+		}
+	}
+	 return true;
+}
+bool ETrans4_rref1(Matrix4f &MA,int &nXnum,int nxindex[4])
+{
+	int maxRowE;
+	double temp; 
+	for(int j=0;j<=3;j++)//j=col
+	{
+		maxRowE=j;
+		for(int i=j;i<=3;i++)//i=row
+		{
+			if(fabsf(MA(i,j))>fabsf(MA(maxRowE,j)))
+				maxRowE = i;
+		}
+		if(fabsf(MA(maxRowE,j))==0)
+		{
+			nxindex[j]=1;
+			nXnum--;
+		}
+		else
+		{
+            MA=Eijexchange4(j,maxRowE)*MA;
+             float k=1/MA(j,j);
+			MA=Eijmul4(j,k)*MA;
 			for(int i=0;i<=3;i++)
 			{
 				if(i==j)continue;
@@ -2001,8 +2032,8 @@ bool ETrans4_rref(Matrix4f &MA)
 				//cout<<MA<<endl;
 				MA=Eijmulex4(i,j,-temp)*MA;
 			}
-			
 		}
+
 	}
 	//cout<<MA<<endl;
 	for(int i=0;i<=3;i++)//j=col
@@ -2067,6 +2098,55 @@ bool ETrans3_rref(Matrix3f &MA)
 		}
 	}
 	return true;
+}
+bool ETrans3_rref1(Matrix3f &MA,int &nXnum,int nxindex[3])
+{
+	int maxRowE;
+	double temp; 
+	for(int j=0;j<=2;j++)//j=col
+	{
+		maxRowE=j;
+		for(int i=j;i<=2;i++)//i=row
+		{
+			if(fabsf(MA(i,j))>fabsf(MA(maxRowE,j)))
+				maxRowE = i;
+		}
+		if(fabsf(MA(maxRowE,j))==0)
+		{
+			nxindex[j]=1;
+			nXnum--;
+		}
+		else
+		{
+            MA=Eijexchange3(j,maxRowE)*MA;
+             float k=1/MA(j,j);
+			MA=Eijmul3(j,k)*MA;
+			for(int i=0;i<=2;i++)
+			{
+				if(i==j)continue;
+				temp =MA(i,j)/MA(j,j);
+				//cout<<MA<<endl;
+				MA=Eijmulex3(i,j,-temp)*MA;
+			}
+		}
+
+	}
+	//cout<<MA<<endl;
+	for(int i=0;i<=2;i++)//j=col
+	{
+		if(MA(i,i)==0)
+		{
+			for(int j=i;j<=2;j++)
+			{
+				if(MA(j,j)==1)
+				{
+					MA=Eijexchange3(i,j)*MA;
+				}
+			}
+		}
+	}
+		//cout<<MA<<endl;
+	 return true;
 }
 bool ETrans3(Matrix3f &MA)
 {
@@ -3717,17 +3797,8 @@ bool PlaneFitting3(PointCordTypeDef &PfirPont,float H,vector<PointCordTypeDef> &
 	//elementary transformation of matrices
 	
 		int nXnum=4;
-		ETrans4_rref(MA);
-		for(int i=0;i<4;i++)
-		{
-			float fxxx=(fabsf((MA(i,0))+fabsf(MA(i,1))+fabsf(MA(i,2))));
-			if(fxxx==0)
-			{
-				nxindex[i]=1;
-				nXnum--;
-			}
-
-		}
+		ETrans4_rref1(MA,nXnum,nxindex);
+		
 		if(nXnum!=4)
 		{
 			//solve the remain x
@@ -3879,17 +3950,7 @@ bool PlaneFitting3_CL(PointCLTypeDef &PfirPont,float H,vector<PointCLTypeDef> &v
 	//elementary transformation of matrices
 	
 		int nXnum=4;
-		ETrans4_rref(MA);
-		for(int i=0;i<4;i++)
-		{
-			float fxxx=fabsf(MA(i,i));
-			if(fabsf(MA(i,i))==0)
-			{
-				nxindex[i]=1;
-				nXnum--;
-			}
-
-		}
+		ETrans4_rref1(MA,nXnum,nxindex);
 		if(nXnum!=4)
 		{
 			//solve the remain x
@@ -4427,17 +4488,7 @@ bool LocalRegLine5_CL(Matrix<float,1,2> &MfirPont,float H,vector<PointCLTypeDef>
 
 	//elementary transformation of matrices
 	int nXnum=3;
-	ETrans3_rref(MA);
-	for(int i=0;i<3;i++)
-	{
-		float fxxx=fabsf(MA(i,i));
-		if(fabsf((MA(i,0))+fabsf(MA(i,1))+fabsf(MA(i,2)))==0)
-		{
-			Mabc(i,0)=1;
-			nxindex[i]=1;
-			nXnum--;
-		}
-	}
+	ETrans3_rref1(MA,nXnum,nxindex);
 	if (nXnum==1&&nxindex[0]<0)
 	{
 		cout<<"Cannot regress the line;"<<endl;
@@ -5640,7 +5691,7 @@ bool ChangeWithAnothPont(int i,vector<PointCLTypeDef>&Pro_ForRovRotaLocalPointsI
 }
 bool AdEvePontsBySec_ALL_LP1(float clSampling,vector<PointCLTypeDef>&vUnorgaPointsWorld,vector<PointLPTypeDef>&vUnorgaPointsWorld_LP,vector<vLinesDef> &vnLine,vector<vector<PointCLTypeDef>> &vvpoints)
 {
-	for(int n=0;n<2;n++)
+	for(int n=0;n<3;n++)
 	{
 		//set every point in vPathPointsWorld as the origin
 		float fro=1;	
@@ -8044,7 +8095,7 @@ int main(int argc, char *argv[])
 	
 	char *Points_3D_ori_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_ori_n_1.txt";
 	//WriteCA2Txt_Skip(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
-	WriteCA2Txt_CL(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
+	//WriteCA2Txt_CL(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
 	
 	//adjust every points by section
 	vector<vector<PointCLTypeDef>> vvpoints;
@@ -8289,32 +8340,24 @@ BWLABEL3(grdarray);
 //
 //---solve equs of no positive
 
-//Matrix4f MA;
-////MA<<1,1,1,1,
-////0,2,1,1,
-////0,0,1,1,
-////1,1,1,1;
+Matrix4f MA;
+//MA<<1,1,1,1,
+//0,2,1,1,
+//0,0,1,1,
+//1,1,1,1;
 //MA<<1,0,0,0,
 //	0,0,0,0,
-//	0,0,1,1,
+//	0,0,0,0,
 //	0,1,1,1;
 //cout<<MA<<endl;
 //Matrix<float,4,1>Mabc;
 //Mabc<<0,0,0,0;
 //int nxindex[4]={-1,-1,-1,-1};
 //int nXnum=4;
-//ETrans4_rref(MA);
+//
+//ETrans4_rref1(MA,nXnum,nxindex);
 //cout<<MA<<endl;
-//for(int i=0;i<4;i++)
-//{
-//	float fxxx=fabsf(MA(i,i));
-//	if(fabsf(MA(i,i))==0)
-//	{
-//		Mabc(i,0)=1;
-//		nxindex[i]=1;
-//		nXnum--;
-//	}
-//}
+//
 //int m=MA.rows();
 //int n=MA.cols();
 //int np=n-nXnum;
