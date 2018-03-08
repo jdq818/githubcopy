@@ -5691,7 +5691,7 @@ bool ChangeWithAnothPont(int i,vector<PointCLTypeDef>&Pro_ForRovRotaLocalPointsI
 }
 bool AdEvePontsBySec_ALL_LP1(float clSampling,vector<PointCLTypeDef>&vUnorgaPointsWorld,vector<PointLPTypeDef>&vUnorgaPointsWorld_LP,vector<vLinesDef> &vnLine,vector<vector<PointCLTypeDef>> &vvpoints)
 {
-	for(int n=0;n<3;n++)
+	for(int n=0;n<5;n++)
 	{
 		//set every point in vPathPointsWorld as the origin
 		float fro=1;	
@@ -6357,6 +6357,32 @@ bool Points_Init1(zxhImageDataT<short>&imgReadNewRaw,zxhImageDataT<short>&imgCou
 				}
 	return true;
 }
+bool Points_Init2(zxhImageDataT<short>&imgReadNewRaw,vector<PointImgTypeDef>&vSeedsPonts)//map line into original image in a range
+{
+	
+	//store the seed points.
+	
+	int ImgNewSize[4]={1};
+	imgReadNewRaw.GetImageSize(ImgNewSize[0],ImgNewSize[1],ImgNewSize[2],ImgNewSize[3]);
+	for(int it=0;it<ImgNewSize[3];++it)
+		for(int iz=0;iz<ImgNewSize[2];++iz)
+			for(int iy=0;iy<ImgNewSize[1];++iy)
+				for(int ix=0;ix<ImgNewSize[0];++ix)
+				{
+					short sint=imgReadNewRaw.GetPixelGreyscale(ix,iy,iz,it);
+					if(sint==ZXH_Foreground)
+					{
+						PointImgTypeDef pseed;
+						pseed.x=ix;
+						pseed.y=iy;
+						pseed.z=iz;
+						pseed.val=0;
+						vSeedsPonts.push_back(pseed);
+					}
+
+				}
+	return true;
+}
 bool Coutmap_vec(zxhImageDataT<short>&imgCountmap,std::vector<std::vector<std::vector<int> > > &BW,std::vector<std::vector<std::vector<int> > > &BW1)
 {
 
@@ -6496,6 +6522,38 @@ bool Calc3Hrun(int i,vector<int>& rowRun,int HcurRowIdx,int curRowIdx,int &Hfirs
 	}
 	return true;
 }
+bool IsStEnAndCon(int ncurRowStart,int ncurRowEnd,int HCFRP,int HCLRP,vector<int>& stRun, vector<int>& enRun,int imgSize[3])
+{
+	if(HCLRP==-1)
+	{
+		return false;
+	}
+
+	else if ((ncurRowStart==0&&stRun[HCFRP]==0)||((ncurRowEnd==imgSize[1]-1)&&(enRun[HCLRP]==imgSize[1]-1)))
+	{
+		return true;
+	}
+	return false;
+}
+bool CalcLables_col(int i,int &HfirstRunOnPre,int &HlastRunOnPre,vector<int>& stRun, vector<int>& enRun,vector<int>& runLabels, vector<pair<int, int>>& equivalences,int imgSize[3])
+{
+		if (stRun[i]==0&&stRun[HfirstRunOnPre] == 0)
+		{
+			if (runLabels[i] == 0) // never marked
+				runLabels[i] = runLabels[HfirstRunOnPre];
+			else if (runLabels[i] != runLabels[HfirstRunOnPre])// have marked             
+				equivalences.push_back(make_pair(runLabels[i], runLabels[HfirstRunOnPre])); // 保存等价对
+		}
+		if (enRun[i]==0&&enRun[HlastRunOnPre] == 0)
+		{
+			if (runLabels[i] == 0) // never marked
+				runLabels[i] = runLabels[HlastRunOnPre];
+			else if (runLabels[i] != runLabels[HlastRunOnPre])// have marked             
+				equivalences.push_back(make_pair(runLabels[i], runLabels[HlastRunOnPre])); // 保存等价对
+		}
+	HfirstRunOnPre=0;HlastRunOnPre=-1;
+	return true;
+}
 bool CalcLables(int i,int HfirstRunOnPre,int HlastRunOnPre,vector<int>& stRun, vector<int>& enRun,vector<int>& runLabels, vector<pair<int, int>>& equivalences, int offset)
 {
 	for (int k = HfirstRunOnPre; k <= HlastRunOnPre; k++)
@@ -6602,6 +6660,141 @@ bool FIRSTPASS_1(int imgSize[4],vector<int>& stRun, vector<int>& enRun, vector<i
 			int HCFRP=HfirstRunOnPre[h];
 			int HCLRP=HlastRunOnPre[h];
 			CalcLables(i,HCFRP,HCLRP,stRun,enRun,runLabels,equivalences, offset);
+		}
+		if (runLabels[i] == 0) // 没有与前一列的任何run重合
+		{
+			runLabels[i] = idxLabel++;
+		}
+
+	}
+	return true;
+}
+	bool FIRSTPASSSur3_1(int imgSize[3],vector<int>& stRun, vector<int>& enRun, vector<int>& rowRun, int &NumberOfRuns,
+    vector<int>& runLabels, vector<pair<int, int>>& equivalences )
+{
+	
+	runLabels.assign(NumberOfRuns, 0);
+	int idxLabel = 1;
+
+	int curRowIdx = 0;
+	int LcurRowIdx = 0;
+	int firstRunOnCur = 0;
+	int firstRunOnPre = 0;
+	int lastRunOnPre = -1;
+
+	int HcurRowIdx[3] = {0,0,0};
+	int HfirstRunOnPre[4] = {0,0,0,0};
+	int HlastRunOnPre[4] ={-1,-1,-1,-1};
+	for (int i = 0; i < NumberOfRuns; i++)
+	{
+		//calculate the start and then end position of the runsl
+		int roR=rowRun[i];
+		int nrowNum=roR%imgSize[0];
+		int nhigNum=roR/imgSize[0];
+			int ncurRowStart=stRun[i];
+				int ncurRowEnd=enRun[i];
+
+		if (rowRun[i] != curRowIdx)
+		{
+			curRowIdx = rowRun[i];
+			LcurRowIdx=curRowIdx-1;
+			int numrunbe=0;
+			int numrunone=0;
+
+
+			for(int m=0;m<rowRun.size();m++)
+			{
+
+				if(rowRun[m]==LcurRowIdx)
+				{
+					numrunone++;
+				}
+			}
+			if(curRowIdx%imgSize[0]==0||numrunone==0)
+			{
+				firstRunOnPre = 0;
+				lastRunOnPre = -1;
+			}
+			else
+			{
+				firstRunOnPre = i - numrunone;
+				lastRunOnPre = i -1;
+			}
+			HfirstRunOnPre[0] = firstRunOnPre;
+			HlastRunOnPre[0] =lastRunOnPre;
+
+			//max(rowRun[i]-3,0);
+			//calculate the number of runs between current run and the front run.
+			HcurRowIdx[0]=max(rowRun[i]-imgSize[0],-1);
+			HcurRowIdx[1]=max(rowRun[i]-imgSize[0]-1,-1);
+			HcurRowIdx[2]=max(rowRun[i]-imgSize[0]+1,-1);
+			// the front row
+			int CRow=HcurRowIdx[0];
+			int CFRP=0;
+			int CLRP=-1;
+			Calc3Hrun(i,rowRun,CRow,curRowIdx,CFRP,CLRP);
+			HfirstRunOnPre[1] = CFRP;
+			HlastRunOnPre[1] =CLRP;
+			//the up front row
+			CRow=HcurRowIdx[1];
+			if(CRow%imgSize[0]==imgSize[0]-1)
+			{
+				CFRP=0;
+				CLRP=-1;
+			}
+			else
+			{
+				Calc3Hrun(i,rowRun,CRow,curRowIdx,CFRP,CLRP);
+			}
+			HfirstRunOnPre[2] = CFRP;
+			HlastRunOnPre[2] =CLRP;
+			//the down front row
+			CRow=HcurRowIdx[2];
+			if(CRow%imgSize[0]==0)
+			{
+				CFRP=0;
+				CLRP=-1;
+			}
+			else
+			{
+				Calc3Hrun(i,rowRun,CRow,curRowIdx,CFRP,CLRP);
+			}
+			HfirstRunOnPre[3] = CFRP;
+			HlastRunOnPre[3] =CLRP;
+			
+
+		}
+		//calculate the labels
+		int offset=0;
+		for (int h=0;h<4;h++)
+		{
+			int HCFRP=HfirstRunOnPre[h];
+			int HCLRP=HlastRunOnPre[h];
+
+			if(h==0&&(nhigNum==0||nhigNum==imgSize[2]-1))//up row
+			{
+				offset=1;
+				CalcLables(i,HCFRP,HCLRP,stRun,enRun,runLabels,equivalences, offset);
+			}
+			else if(h==1&&(nrowNum==0||nrowNum==imgSize[0]-1))//front row
+			{
+				offset=1;
+				CalcLables(i,HCFRP,HCLRP,stRun,enRun,runLabels,equivalences, offset);
+			}
+			else if((h==2||h==3))//up front row
+			{
+				bool isSEC=IsStEnAndCon(ncurRowStart,ncurRowStart,HCFRP,HCLRP,stRun,enRun,imgSize);
+				if (isSEC)
+				{
+					CalcLables_col(i,HCFRP,HCLRP,stRun,enRun,runLabels,equivalences,imgSize);
+				}
+			}
+			else
+			{
+				offset=0;
+				CalcLables(i,HCFRP,HCLRP,stRun,enRun,runLabels,equivalences, offset);
+			}
+
 		}
 		if (runLabels[i] == 0) // 没有与前一列的任何run重合
 		{
@@ -6940,6 +7133,24 @@ void BWLABEL3_test(int imgSize[3],std::vector<std::vector<std::vector<int> > > A
 	std::vector<int>::iterator biggest = std::max_element(std::begin(runLabels), std::end(runLabels));  
 	NumberOfLabs=*biggest;
 }
+void BWLABSuf3_test(int imgSize[3],std::vector<std::vector<std::vector<int> > > A,std::vector<std::vector<std::vector<int> > > &B,int &NumberOfLabs)
+{
+
+	vector<int> stRun;
+	vector<int> enRun;
+	vector<int> rowRun;
+	int NumberOfRuns=0;
+	vector<int> runLabels;
+		//
+	FILLRUNVECTORS(A,NumberOfRuns,stRun,enRun,rowRun);
+	//
+
+	vector<pair<int, int>> equivalences;
+	FIRSTPASSSur3_1(imgSize,stRun,enRun,rowRun,NumberOfRuns,runLabels, equivalences);
+	replaceSameLabel(runLabels,equivalences);
+	std::vector<int>::iterator biggest = std::max_element(std::begin(runLabels), std::end(runLabels));  
+	NumberOfLabs=*biggest;
+}
 void BWLABEL3(int imgSize[4],std::vector<std::vector<std::vector<int> > > A,std::vector<std::vector<std::vector<int> > > &B,int &NumberOfLabs,zxhImageDataT<short>&imgLabel)
 {
 
@@ -6959,6 +7170,97 @@ void BWLABEL3(int imgSize[4],std::vector<std::vector<std::vector<int> > > A,std:
 	std::vector<int>::iterator biggest = std::max_element(std::begin(runLabels), std::end(runLabels));  
 	NumberOfLabs=*biggest;
 	BACKLABELED(imgSize,A,B,stRun, enRun, rowRun, NumberOfRuns,runLabels,imgLabel);
+}
+bool BWLABELSur3(int imgSize[3],std::vector<std::vector<std::vector<int> > > A,std::vector<std::vector<std::vector<int> > > &B,int &NumberOfLabs)
+{
+	
+	vector<int> stRun;
+	vector<int> enRun;
+	vector<int> rowRun;
+	int NumberOfRuns=0;
+	vector<int> runLabels;
+		//
+	FILLRUNVECTORS(A,NumberOfRuns,stRun,enRun,rowRun);
+	//
+
+	vector<pair<int, int>> equivalences;
+	FIRSTPASSSur3_1(imgSize,stRun,enRun,rowRun,NumberOfRuns,runLabels, equivalences);
+	replaceSameLabel(runLabels,equivalences);
+	std::vector<int>::iterator biggest = std::max_element(std::begin(runLabels), std::end(runLabels));  
+	NumberOfLabs=*biggest;
+	return true;
+}
+bool Gen_Cub_region(zxhImageDataT<short>&imgRot,PointImgTypeDef &PontImg,int R,std::vector<std::vector<std::vector<int> > > &Region,int  &NumberOfAngvecLabs)
+{
+				int ImgSize[4]={1};
+	imgRot.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);
+	int nSOfRe=2*R+1;
+	if(abs(PontImg.x)>R&&abs(PontImg.y)>R&&abs(PontImg.z)>R&&abs(PontImg.x+R)<=ImgSize[0]&&abs(PontImg.y+R)<=ImgSize[1]&&abs(PontImg.z+R)<=ImgSize[2])
+	{
+		for(int z=0;z<nSOfRe;z++)  
+		{  
+			for (int x=0;x<nSOfRe;x++)  
+			{  
+				for (int y=0;y<nSOfRe;y++)  
+				{  
+
+					int imgposi[4]={PontImg.x-R+x,PontImg.y-R+y,PontImg.z-R+z,0};
+					if(x==R&&y==R&&z==R)
+					{
+						Region[z][x][y]=0;
+					}
+					else
+					{
+						Region[z][x][y]=imgRot.GetPixelGreyscale(imgposi[0],imgposi[1],imgposi[2],imgposi[3]);
+					}
+				}
+
+			}
+		}
+		std::vector<std::vector<std::vector<int> > > Region_Lab(nSOfRe,vector<vector<int> >(nSOfRe,vector<int>(nSOfRe,0)));  
+		
+		int RegSize[3]={nSOfRe,nSOfRe,nSOfRe};
+		std::vector<std::vector<std::vector<int> > > Region_Angvec_Lab(nSOfRe,vector<vector<int> >(nSOfRe,vector<int>(nSOfRe,0)));  
+	
+		BWLABELSur3(RegSize,Region,Region_Lab,NumberOfAngvecLabs);
+
+
+	}
+
+	return true;
+}
+bool Selec_Cent(zxhImageDataT<short>&imgRot,PointImgTypeDef &pseed,int R,int &NumberOfAngvecLabs)
+{
+	int nSOfRe=2*R+1;
+	std::vector<std::vector<std::vector<int> > > Cub_Rego(nSOfRe,vector<vector<int> >(nSOfRe,vector<int>(nSOfRe,0)));  
+      Gen_Cub_region(imgRot,pseed,R,Cub_Rego,NumberOfAngvecLabs);
+
+	return true;
+}
+void SelCenSur3(zxhImageDataT<short>&imgRot,vector<PointImgTypeDef>&vSeedsPonts)
+{
+		zxhImageDataT<short>Rot_Surf_R1;
+	Rot_Surf_R1.NewImage( imgRot.GetImageInfo() );
+
+int R=3;	
+
+	for (int i=0;i<vSeedsPonts.size();i++)//map the vetor points to the image
+	{
+		PointImgTypeDef pseed;
+		pseed=vSeedsPonts[i];
+
+		if(pseed.x==224&&pseed.y==206&&pseed.z==61)
+		{
+			int x160=0;
+		}
+		int NumberOfAngvecLabs=0;
+		Selec_Cent(imgRot,pseed,R,NumberOfAngvecLabs);
+		Rot_Surf_R1.SetPixelByGreyscale(pseed.x,pseed.y,pseed.z,0,NumberOfAngvecLabs);
+
+	}
+	char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_Surf_R3.nii.gz";
+	string chFileName2(chResultName);
+	zxh::SaveImage(&Rot_Surf_R1,chFileName2.c_str());
 }
 void SelCen(int ImgSize[4],std::vector<std::vector<std::vector<int> > > &BW1,std::vector<std::vector<std::vector<int> > > &BW2,int &NumberOfLabs,zxhImageDataT<short>&imgCenLabel)
 {
@@ -7192,6 +7494,7 @@ bool BWLABEL3W(int imgSize[3],std::vector<std::vector<std::vector<int> > > A,std
 	BACKLABELEDW(imgSize,A,B,stRun, enRun, rowRun, NumberOfRuns,runLabels);
 	return true;
 }
+
 bool Reglabel(int nSOfRe,std::vector<std::vector<std::vector<int> > > Region,int &NumberOfLabs)
 	{
 			int ImgSize[3]={nSOfRe,nSOfRe,nSOfRe};
@@ -8026,6 +8329,69 @@ bool BifurDec(zxhImageDataT<short>&imgReadNewRaw)
 	SelCen(ImgSize,BW1,BW2,NumberOfLabs,imgCenLabel);
 	return true;
 }
+bool ReadImgToBW(zxhImageDataT<short>&imgCountmapAndNei,std::vector<std::vector<std::vector<int> > > &BW1,int ImgSize[4])
+{
+	for(int it=0;it<ImgSize[3];it++)  
+		for(int iz=0;iz<ImgSize[2];iz++)  
+			for (int ix=0;ix<ImgSize[0];ix++)  
+				for (int iy=0;iy<ImgSize[1];iy++)  
+				{
+					short sint=imgCountmapAndNei.GetPixelGreyscale(ix,iy,iz,it);
+					BW1[iz][ix][iy]=sint;  
+				}  
+          
+     
+	return true;
+}
+bool BifurDecSur3(zxhImageDataT<short>&imgReadNewRaw)
+{
+	
+	//zxhImageDataT<short>imgCountmap,imgCountConNeimap;
+	//imgCountmap.NewImage( imgReadNewRaw.GetImageInfo() );
+	//init_img(imgCountmap);
+	//vector<PointImgTypeDef> vSeedsPonts;
+	//Points_Init1(imgReadNewRaw,imgCountmap,vSeedsPonts);
+	////count the number of neighbor points
+	//imgCountConNeimap.NewImage(imgReadNewRaw.GetImageInfo() );
+	//init_img(imgCountConNeimap);
+	//Calc_NumOfNei(imgReadNewRaw,imgCountmap,vSeedsPonts);
+	////calculate the connected region of the neighbor poins
+	//Calc_ConRegOfNei(imgReadNewRaw,imgCountConNeimap,vSeedsPonts);
+	//int ImgSize[4]={1};
+	//imgCountmap.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);
+	//std::vector<std::vector<std::vector<int> > > BW(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
+	//std::vector<std::vector<std::vector<int> > > BW1(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
+	//int zz=BW1.size();
+	//int zz1=BW.size();
+	////mark the candidate points
+	//Coutmap_vec1(imgCountmap,imgCountConNeimap,BW,BW1);
+	//zxhImageDataT<short>imgLabel;
+	//imgLabel.NewImage( imgReadNewRaw.GetImageInfo() );
+	//	int NumberOfLabs=0;
+	//BWLABEL3(ImgSize,BW,BW1,NumberOfLabs,imgLabel);
+	//select the center point
+		//read the raw image
+	string strfilenameraw =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_CountAndNei.nii.gz";
+	zxhImageDataT<short> imgCountmapAndNei;
+	if( zxh::OpenImage( &imgCountmapAndNei, strfilenameraw ) == false )
+	{
+		std::cerr << "Raw image(nifti-file) is not found!"; 
+		return -1;
+	}
+	//int ImgSize[4]={1};
+	//imgCountmapAndNei.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);	
+	//std::vector<std::vector<std::vector<int> > > BW1(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
+	//ReadImgToBW(imgCountmapAndNei,BW1,ImgSize);
+
+	//std::vector<std::vector<std::vector<int> > > BW2(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
+	//zxhImageDataT<short> imgCenLabel;
+	//int NumberOfLabs=0;
+	//imgCenLabel.NewImage( imgCountmapAndNei.GetImageInfo() );
+	vector<PointImgTypeDef> vSeedsPonts;
+	Points_Init2(imgCountmapAndNei,vSeedsPonts);
+	SelCenSur3(imgReadNewRaw,vSeedsPonts);
+	return true;
+}
 int main(int argc, char *argv[])
 {
 	//if( argc < 4 )
@@ -8043,95 +8409,20 @@ int main(int argc, char *argv[])
 	//read and resample the curve
 	//--..--..--..--..
 
-     string strfilenameraw =  "J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CAE_ME_L.nii.gz";
-	char *chRefCurvefilename ="J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CL0.vtk";
-	char *chTarCurvefilename="J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CL1.vtk";
 
+ //    string strfilenameraw =  "J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CAE_ME_L.nii.gz";
+	//char *chRefCurvefilename ="J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CL0.vtk";
+	//char *chTarCurvefilename="J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CL1.vtk";
 
-	
-	char *chCurvesfolder="F:/Coronary_0/code/Resutsfusion/DS_For_ResFu/dataset00/";
-	vector<vLinesDef> vnLine;
-	ReadFilesInAfolder(chCurvesfolder,vnLine);
-	
-
-	float flength=0,flengthdeform=0,fsectionlength=0;
-	float ResampleNUM=9999;
-	//read the raw image
-	zxhImageDataT<short> imgReadRaw;
-	if( zxh::OpenImage( &imgReadRaw, strfilenameraw ) == false )
-	{
-		std::cerr << "Raw image(nifti-file) is not found!"; 
-		return -1;
-	}
-	std::vector<jdq2017::point3D> ref;
-	std::vector<jdq2017::point3D> cl;
-	if (! jdq2017::readCenterlinevtk(chRefCurvefilename, ref) )//read the reference line
-	{
-		if (!outputOneLine) 
-		{
-			std::cerr << "Error in reading input data" << std::endl;
-			return 1;
-		} 
-
-	}
-
-
-	//calculate the distance step
-	int nSamNUM=500;
-	double clSampling = pathLength(ref)/nSamNUM;
-
-	ResamEveryCurve(vnLine,clSampling);
-	//OutputVnLine(vnLine);
-	//Transform all the points of lines into unorganized points
-	vector<PointCLTypeDef> vUnorgaPointsWorld;
-	vector<PointLPTypeDef> vUnorgaPointsWorld_LP;
-	TransAllPontsIntoUnorga_LP(vnLine,vUnorgaPointsWorld,vUnorgaPointsWorld_LP);
-	//Store the unique points
-	vector<PointCLTypeDef> vUnorgaPointsWorld_ori;
-	StorUnique_LP(vUnorgaPointsWorld,vUnorgaPointsWorld_LP);	
-	//first fusion
-	
-	vUnorgaPointsWorld_ori.assign(vUnorgaPointsWorld.begin(),vUnorgaPointsWorld.end());
-	
-	char *Points_3D_ori_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_ori_n_1.txt";
-	//WriteCA2Txt_Skip(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
-	//WriteCA2Txt_CL(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
-	
-	//adjust every points by section
-	vector<vector<PointCLTypeDef>> vvpoints;
-	AdEvePontsBySec_ALL_LP1(clSampling,vUnorgaPointsWorld,vUnorgaPointsWorld_LP,vnLine,vvpoints);
-	for(int i=0;i<vvpoints.size();i++)
-	{
-		char chTemp[25];
-		_itoa_s(i, chTemp, 10);
-		char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new_";
-		int nLen1 = strlen(Points_3D_Filename) + strlen(chTemp) + strlen(".txt") + 1;
-		char *chFileName1 = (char *)malloc(nLen1);
-		strcpy(chFileName1, Points_3D_Filename);
-		strcat(chFileName1, chTemp);
-		strcat(chFileName1, ".txt");
-		WriteCA2Txt_CL(vvpoints[i],Points_3D_Filename);
-		free(chFileName1);
-	//WriteCA2Txt_Skip(vUnorgaPointsWorld,Points_3D_Filename);
-	
-
-	}
-	/*
-	//second fusion
-	//char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new.txt";
-	//vector<PointCordTypeDef> vAdpoints;
-	//ReadCA2Txt(vAdpoints,Points_3D_Filename);
-	//AdEvePontsBySec_ALL(clSampling,vUnorgaPointsWorld, vnLine);
-	*/
-	//--..--..--..--..
-	//----------------------
-	
 
 	//
-	
-    //---...----...----....
-	//get the central points
-	//string strfilenameraw =  "J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CAE_ME_L.nii.gz";
+	//char *chCurvesfolder="F:/Coronary_0/code/Resutsfusion/DS_For_ResFu/dataset00/";
+	//vector<vLinesDef> vnLine;
+	//ReadFilesInAfolder(chCurvesfolder,vnLine);
+	//
+
+	//float flength=0,flengthdeform=0,fsectionlength=0;
+	//float ResampleNUM=9999;
 	////read the raw image
 	//zxhImageDataT<short> imgReadRaw;
 	//if( zxh::OpenImage( &imgReadRaw, strfilenameraw ) == false )
@@ -8139,20 +8430,102 @@ int main(int argc, char *argv[])
 	//	std::cerr << "Raw image(nifti-file) is not found!"; 
 	//	return -1;
 	//}
-	//char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new.txt";
-	//vector<PointCordTypeDef> vAdpoints;
-	//ReadCA2Txt(vAdpoints,Points_3D_Filename);
-	//zxhImageDataT<short>imgReadNewRaw;
-	//imgReadNewRaw.NewImage( imgReadRaw.GetImageInfo() );
-	//MapModelPointsToImage(imgReadNewRaw,vAdpoints);
-	////store the points as image
-	//char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot.nii.gz";
-	//string chFileName2(chResultName);
-	//zxh::SaveImage(&imgReadNewRaw,chFileName2.c_str());
+	//std::vector<jdq2017::point3D> ref;
+	//std::vector<jdq2017::point3D> cl;
+	//if (! jdq2017::readCenterlinevtk(chRefCurvefilename, ref) )//read the reference line
+	//{
+	//	if (!outputOneLine) 
+	//	{
+	//		std::cerr << "Error in reading input data" << std::endl;
+	//		return 1;
+	//	} 
+
+	//}
 
 
-	//vector<PointCordTypeDef> vBifurpoints;
+	////calculate the distance step
+	//int nSamNUM=500;
+	//double clSampling = pathLength(ref)/nSamNUM;
+
+	//ResamEveryCurve(vnLine,clSampling);
+	////OutputVnLine(vnLine);
+	////Transform all the points of lines into unorganized points
+	//vector<PointCLTypeDef> vUnorgaPointsWorld;
+	//vector<PointLPTypeDef> vUnorgaPointsWorld_LP;
+	//TransAllPontsIntoUnorga_LP(vnLine,vUnorgaPointsWorld,vUnorgaPointsWorld_LP);
+	////Store the unique points
+	//vector<PointCLTypeDef> vUnorgaPointsWorld_ori;
+	//StorUnique_LP(vUnorgaPointsWorld,vUnorgaPointsWorld_LP);	
+	////first fusion
+	//
+	//vUnorgaPointsWorld_ori.assign(vUnorgaPointsWorld.begin(),vUnorgaPointsWorld.end());
+	//
+	//char *Points_3D_ori_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_ori_n_1.txt";
+	////WriteCA2Txt_Skip(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
+	////WriteCA2Txt_CL(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
+	//
+	////adjust every points by section
+	//vector<vector<PointCLTypeDef>> vvpoints;
+	//AdEvePontsBySec_ALL_LP1(clSampling,vUnorgaPointsWorld,vUnorgaPointsWorld_LP,vnLine,vvpoints);
+	//for(int i=0;i<vvpoints.size();i++)
+	//{
+	//	char chTemp[25];
+	//	_itoa_s(i, chTemp, 10);
+	//	char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new_";
+	//	int nLen1 = strlen(Points_3D_Filename) + strlen(chTemp) + strlen(".txt") + 1;
+	//	char *chFileName1 = (char *)malloc(nLen1);
+	//	strcpy(chFileName1, Points_3D_Filename);
+	//	strcat(chFileName1, chTemp);
+	//	strcat(chFileName1, ".txt");
+	//	WriteCA2Txt_CL(vvpoints[i],Points_3D_Filename);
+	//	free(chFileName1);
+	////WriteCA2Txt_Skip(vUnorgaPointsWorld,Points_3D_Filename);
+	//
+
+	//}
+	///*
+	////second fusion
+	////char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new.txt";
+	////vector<PointCordTypeDef> vAdpoints;
+	////ReadCA2Txt(vAdpoints,Points_3D_Filename);
+	////AdEvePontsBySec_ALL(clSampling,vUnorgaPointsWorld, vnLine);
+	//*/
+
+
+	////--..--..--..--..
+	//----------------------
+	
+
+	//
+	
+    //---...----...----....
+
+	//get the central points
+	string strfilenameraw =  "J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CAE_ME_L.nii.gz";
+	//read the raw image
+	zxhImageDataT<short> imgReadRaw;
+	if( zxh::OpenImage( &imgReadRaw, strfilenameraw ) == false )
+	{
+		std::cerr << "Raw image(nifti-file) is not found!"; 
+		return -1;
+	}
+	char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new_1.txt";
+	vector<PointCordTypeDef> vAdpoints;
+	ReadCA2Txt(vAdpoints,Points_3D_Filename);
+	zxhImageDataT<short>imgReadNewRaw;
+	imgReadNewRaw.NewImage( imgReadRaw.GetImageInfo() );
+	MapModelPointsToImage(imgReadNewRaw,vAdpoints);
+	
+	//store the points as image
+	char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot.nii.gz";
+	string chFileName2(chResultName);
+	zxh::SaveImage(&imgReadNewRaw,chFileName2.c_str());
+
+	
+	vector<PointCordTypeDef> vBifurpoints;
 	//BifurDec(imgReadNewRaw);
+	BifurDecSur3(imgReadNewRaw);
+	
 	//---...----...----....
 	
 	
@@ -8161,45 +8534,46 @@ int main(int argc, char *argv[])
 
 //----....----....----....----....----....----....
 //get the link of the bifurcation points
-//string strfilenameraw_rot =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot.nii.gz";
-//zxhImageDataT<short> imgRot;
-//if( zxh::OpenImage( &imgRot, strfilenameraw_rot ) == false )
-//{
-//	std::cerr << "Raw image(nifti-file) is not found!"; 
-//	return -1;
-//}
-//
-//string strfilenameraw_rotCent =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_CentLab.nii.gz";
-//zxhImageDataT<short> imgRotCent;
-//if( zxh::OpenImage( &imgRotCent, strfilenameraw_rotCent ) == false )
-//{
-//	std::cerr << "Raw image(nifti-file) is not found!"; 
-//	return -1;
-//}
-////get the branch points in order
-//
-//vector <PointImgTypeDef> vCenPont;
-//GetBrPontsInOrder(imgRotCent,vCenPont);
-//int R=3;
-//vector<PointImgTypeDef> vpbitu;
-//	vector<PointImgTypeDef> vptroot;
-//Point_select(imgRot,vCenPont,R,vpbitu,vptroot);
-//vector<PointLinkDef> vbitulink;
-//Point_link(imgRot,imgRotCent,vpbitu,R,vbitulink);
-////save bifurcation points as img
-//zxhImageDataT<short>imgVPbituRaw,imgVProotRaw;
-//imgVPbituRaw.NewImage( imgRot.GetImageInfo() );
-//MapImgPointsToImage(imgVPbituRaw,vpbitu);
-//char *chResultName1="F:/Coronary_0/code/Resutsfusion/CAE_VPbitu.nii.gz";
-//string chFileName1(chResultName1);
-//zxh::SaveImage(&imgVPbituRaw,chFileName1.c_str());
-////
-//imgVProotRaw.NewImage( imgRot.GetImageInfo() );
-//MapImgPointsToImage(imgVProotRaw,vptroot);
-//char *chResultName2="F:/Coronary_0/code/Resutsfusion/CAE_VProot.nii.gz";
-//string chFileName2(chResultName2);
-//zxh::SaveImage(&imgVProotRaw,chFileName2.c_str());
+/*
+string strfilenameraw_rot =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot.nii.gz";
+zxhImageDataT<short> imgRot;
+if( zxh::OpenImage( &imgRot, strfilenameraw_rot ) == false )
+{
+	std::cerr << "Raw image(nifti-file) is not found!"; 
+	return -1;
+}
 
+string strfilenameraw_rotCent =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_CentLab.nii.gz";
+zxhImageDataT<short> imgRotCent;
+if( zxh::OpenImage( &imgRotCent, strfilenameraw_rotCent ) == false )
+{
+	std::cerr << "Raw image(nifti-file) is not found!"; 
+	return -1;
+}
+//get the branch points in order
+
+vector <PointImgTypeDef> vCenPont;
+GetBrPontsInOrder(imgRotCent,vCenPont);
+int R=3;
+vector<PointImgTypeDef> vpbitu;
+	vector<PointImgTypeDef> vptroot;
+Point_select(imgRot,vCenPont,R,vpbitu,vptroot);
+vector<PointLinkDef> vbitulink;
+Point_link(imgRot,imgRotCent,vpbitu,R,vbitulink);
+//save bifurcation points as img
+zxhImageDataT<short>imgVPbituRaw,imgVProotRaw;
+imgVPbituRaw.NewImage( imgRot.GetImageInfo() );
+MapImgPointsToImage(imgVPbituRaw,vpbitu);
+char *chResultName1="F:/Coronary_0/code/Resutsfusion/CAE_VPbitu.nii.gz";
+string chFileName1(chResultName1);
+zxh::SaveImage(&imgVPbituRaw,chFileName1.c_str());
+//
+imgVProotRaw.NewImage( imgRot.GetImageInfo() );
+MapImgPointsToImage(imgVProotRaw,vptroot);
+char *chResultName2="F:/Coronary_0/code/Resutsfusion/CAE_VProot.nii.gz";
+string chFileName2(chResultName2);
+zxh::SaveImage(&imgVProotRaw,chFileName2.c_str());
+*/
 //----....----....----....----....----....----....
 //-----.....-----.....-----.....-----.....-----.....-----.....-----.....
 //get the link of the bifurcation points and root points
@@ -8290,7 +8664,7 @@ BWLABEL3(grdarray);
 */
 
 				
-
+/*
 //create 3D vector
 //int NZ=3;//hight
 //int NX=3;//row
@@ -8337,10 +8711,67 @@ BWLABEL3(grdarray);
 //	  BWLABEL3_test(imgSize,grdarray,B,numofLabs);
 //	  
 //	return 1;
+
+
+*/
+
+//test 3D Surf connected 
+//create 3D vector
+
+//int Nsize=3;
+//int NZ=Nsize;//hight
+//int NX=Nsize;//row
+//int NY=Nsize;//col
+//std::vector<std::vector<std::vector<int> > > grdarray(NZ,vector<vector<int> >(NX,vector<int>(NY,0)));  
+//    for(int z=0;z<NZ;z++)  
+//    {  
+//        for (int y=0;y<NX;y++)  
+//        {  
+//            for (int x=0;x<NY;x++)  
+//            {  
+//                grdarray[z][x][y]=0;  
+//                
+//            }  
+//        }  
+//    }  
+//	//z,x,y
+//	grdarray[0][0][1]=1; 
+//	grdarray[0][1][0]=1; 
+//
+//
+//	grdarray[1][1][2]=1; 
+//	grdarray[1][2][1]=1; 
+//
+//	grdarray[2][0][0]=1; 
+//	grdarray[2][1][0]=1; 
+//	grdarray[2][2][1]=1; 
+//	  for(int z=0;z<NZ;z++)  
+//    {  
+//        for (int x=0;x<NX;x++)  
+//        {  
+//            for (int y=0;y<NY;y++)  
+//            {  
+//                cout<<grdarray[z][x][y];  
+//                
+//            }  
+//			cout<<endl; 
+//        }  
+//		cout<<endl; 
+//    }  
+//	  int imgSize[3]={NX,NZ,NZ};
+//	  std::vector<std::vector<std::vector<int> > > B(NZ,vector<vector<int> >(NX,vector<int>(NY,0)));  
+//	  int numofLabs=0;
+//	  BWLABSuf3_test(imgSize,grdarray,B,numofLabs);
+//	  
+//	return 1;
+
+
+
+
 //
 //---solve equs of no positive
 
-Matrix4f MA;
+//Matrix4f MA;
 //MA<<1,1,1,1,
 //0,2,1,1,
 //0,0,1,1,
