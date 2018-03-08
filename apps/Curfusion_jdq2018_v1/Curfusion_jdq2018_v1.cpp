@@ -7080,9 +7080,6 @@ bool BACKLABELED(int imgSize[4],std::vector<std::vector<std::vector<int> > > A,s
 			int k=j;
 		}
 	}
-	char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_Lab.nii.gz";
-	string chFileName2(chResultName);
-	zxh::SaveImage(&imgLabel,chFileName2.c_str());
 
 	return true;
 }
@@ -7205,7 +7202,7 @@ bool Gen_Cub_region(zxhImageDataT<short>&imgRot,PointImgTypeDef &PontImg,int R,s
 				{  
 
 					int imgposi[4]={PontImg.x-R+x,PontImg.y-R+y,PontImg.z-R+z,0};
-					if(x==R&&y==R&&z==R)
+					if(x>0&&x<=R&&y>0&&y<=R&&z>0&&z<=R)
 					{
 						Region[z][x][y]=0;
 					}
@@ -7237,30 +7234,39 @@ bool Selec_Cent(zxhImageDataT<short>&imgRot,PointImgTypeDef &pseed,int R,int &Nu
 
 	return true;
 }
-void SelCenSur3(zxhImageDataT<short>&imgRot,vector<PointImgTypeDef>&vSeedsPonts)
+void SelCenSur3(zxhImageDataT<short>&imgRot,vector<PointImgTypeDef>&vSeedsPonts,vector<PointCLTypeDef>&vSeedsPonts_CL)
 {
 		zxhImageDataT<short>Rot_Surf_R1;
 	Rot_Surf_R1.NewImage( imgRot.GetImageInfo() );
 
-int R=3;	
-
-	for (int i=0;i<vSeedsPonts.size();i++)//map the vetor points to the image
+	for ( int nR=1;nR<=3;nR++)
 	{
-		PointImgTypeDef pseed;
-		pseed=vSeedsPonts[i];
-
-		if(pseed.x==224&&pseed.y==206&&pseed.z==61)
+		for (int i=0;i<vSeedsPonts.size();i++)//map the vetor points to the image
 		{
-			int x160=0;
+			PointImgTypeDef pseed;
+			pseed=vSeedsPonts[i];
+			int NumberOfAngvecLabs=0;
+			Selec_Cent(imgRot,pseed,nR,NumberOfAngvecLabs);
+			Rot_Surf_R1.SetPixelByGreyscale(pseed.x,pseed.y,pseed.z,0,NumberOfAngvecLabs);
+			vSeedsPonts[i].val=vSeedsPonts[i].val+1;
+			//Store every connected region
+			PointCLTypeDef pontmpCL;
+			pontmpCL.x=pseed.x;
+			pontmpCL.y=pseed.z;
+			pontmpCL.z=pseed.z;
+			pontmpCL.vLnum.push_back(NumberOfAngvecLabs);
+			vSeedsPonts_CL.push_back(pontmpCL);
 		}
-		int NumberOfAngvecLabs=0;
-		Selec_Cent(imgRot,pseed,R,NumberOfAngvecLabs);
-		Rot_Surf_R1.SetPixelByGreyscale(pseed.x,pseed.y,pseed.z,0,NumberOfAngvecLabs);
-
+		char chTemp[25];
+		_itoa_s(nR, chTemp, 10);
+		char *Img_Filename="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_Surf_R";
+		int nLen1 = strlen(Img_Filename) + strlen(chTemp) + strlen(".nii.gz") + 1;
+		char *chFileName1 = (char *)malloc(nLen1);
+		strcpy(chFileName1, Img_Filename);
+		strcat(chFileName1, chTemp);
+		strcat(chFileName1, ".nii.gz");
+		zxh::SaveImage(&Rot_Surf_R1,chFileName1);
 	}
-	char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_Surf_R3.nii.gz";
-	string chFileName2(chResultName);
-	zxh::SaveImage(&Rot_Surf_R1,chFileName2.c_str());
 }
 void SelCen(int ImgSize[4],std::vector<std::vector<std::vector<int> > > &BW1,std::vector<std::vector<std::vector<int> > > &BW2,int &NumberOfLabs,zxhImageDataT<short>&imgCenLabel)
 {
@@ -7303,7 +7309,42 @@ void SelCen(int ImgSize[4],std::vector<std::vector<std::vector<int> > > &BW1,std
 	string chFileName2(chResultName);
 	zxh::SaveImage(&imgCenLabel,chFileName2.c_str());
 }
-
+void SelCen_MaxVot(int ImgSize[4],std::vector<std::vector<std::vector<int> > > &BW1,vector<PointCLTypeDef>&vSeedsPonts,int &NumberOfLabs,zxhImageDataT<short>&imgCenLabel)
+{
+	vector<vector<PointCLTypeDef>>vvCL_labPont;
+	for (int i = 1; i <=NumberOfLabs; i++)
+	{
+		int nMax=0;
+		vector<PointCLTypeDef> vCL_labPont;
+		for(int z=0;z<ImgSize[2];z++)  
+		{  
+			for (int x=0;x<ImgSize[0];x++)  
+			{  
+				for (int y=0;y<ImgSize[1];y++)  
+				{  
+					int nlab=BW1[z][x][y];  
+					if (nlab==i)
+					{
+						for(int k=0;k<vSeedsPonts.size();k++)
+						{
+							PointCLTypeDef CLtmp=vSeedsPonts[k];
+							if(CLtmp.x==x&&CLtmp.y==y&&CLtmp.z==z)
+							{
+								vCL_labPont.push_back(CLtmp);
+							}
+						}
+					
+					}
+				}  
+			}  
+		} 
+		vvCL_labPont.push_back(vCL_labPont);
+		
+	}
+	//char *chResultName="F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_CentLab.nii.gz";
+	//string chFileName2(chResultName);
+	//zxh::SaveImage(&imgCenLabel,chFileName2.c_str());
+}
 bool fillRunVectors(Matrix<int, 4, 14> A, int& NumberOfRuns, vector<int>& stRun, vector<int>& enRun, vector<int>& rowRun)
 {
     for (int i = 0; i < A.rows(); i++)
@@ -8381,7 +8422,7 @@ bool BifurDecSur3(zxhImageDataT<short>&imgReadNewRaw)
 	//int ImgSize[4]={1};
 	//imgCountmapAndNei.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);	
 	//std::vector<std::vector<std::vector<int> > > BW1(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
-	//ReadImgToBW(imgCountmapAndNei,BW1,ImgSize);
+	
 
 	//std::vector<std::vector<std::vector<int> > > BW2(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
 	//zxhImageDataT<short> imgCenLabel;
@@ -8389,7 +8430,22 @@ bool BifurDecSur3(zxhImageDataT<short>&imgReadNewRaw)
 	//imgCenLabel.NewImage( imgCountmapAndNei.GetImageInfo() );
 	vector<PointImgTypeDef> vSeedsPonts;
 	Points_Init2(imgCountmapAndNei,vSeedsPonts);
-	SelCenSur3(imgReadNewRaw,vSeedsPonts);
+	vector<PointCLTypeDef> vSeedsPonts_CL;
+	SelCenSur3(imgReadNewRaw,vSeedsPonts,vSeedsPonts_CL);
+	//mark the candidate points
+	zxhImageDataT<short>imgLabel;
+	imgLabel.NewImage( imgReadNewRaw.GetImageInfo() );
+	int ImgSize[4]={1};
+	imgCountmapAndNei.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);	
+	int NumberOfLabs=0;
+	std::vector<std::vector<std::vector<int> > > BW(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));
+	ReadImgToBW(imgCountmapAndNei,BW,ImgSize);
+    std::vector<std::vector<std::vector<int> > > BW1(ImgSize[2],vector<vector<int> >(ImgSize[0],vector<int>(ImgSize[1],0)));  
+	BWLABEL3(ImgSize,BW,BW1,NumberOfLabs,imgLabel);
+	//select the center point
+	zxhImageDataT<short> imgCenLabel;
+	imgCenLabel.NewImage( imgReadNewRaw.GetImageInfo() );	
+	SelCen_MaxVot(ImgSize,BW1,vSeedsPonts_CL,NumberOfLabs,imgCenLabel);
 	return true;
 }
 int main(int argc, char *argv[])
