@@ -6390,6 +6390,31 @@ bool Points_Init2(zxhImageDataT<short>&imgReadNewRaw,vector<PointILTypeDef>&vSee
 				}
 	return true;
 }
+bool Points_Init3(zxhImageDataT<short>&imgReadNewRaw,vector<PointImgTypeDef>&vSeedsPonts)//map line into original image in a range
+{
+	
+	//store the seed points.
+	
+	int ImgNewSize[4]={1};
+	imgReadNewRaw.GetImageSize(ImgNewSize[0],ImgNewSize[1],ImgNewSize[2],ImgNewSize[3]);
+	for(int it=0;it<ImgNewSize[3];++it)
+		for(int iz=0;iz<ImgNewSize[2];++iz)
+			for(int iy=0;iy<ImgNewSize[1];++iy)
+				for(int ix=0;ix<ImgNewSize[0];++ix)
+				{
+					short sint=imgReadNewRaw.GetPixelGreyscale(ix,iy,iz,it);
+					if(sint!=0)
+					{
+						PointImgTypeDef pseed;
+						pseed.x=ix;
+						pseed.y=iy;
+						pseed.z=iz;
+						vSeedsPonts.push_back(pseed);
+					}
+
+				}
+	return true;
+}
 bool Coutmap_vec(zxhImageDataT<short>&imgCountmap,std::vector<std::vector<std::vector<int> > > &BW,std::vector<std::vector<std::vector<int> > > &BW1)
 {
 
@@ -7207,9 +7232,12 @@ bool Gen_Cub_region(zxhImageDataT<short>&imgRot,PointImgTypeDef &PontImg,int R,s
 			{  
 				for (int y=0;y<nSOfRe;y++)  
 				{  
-
+					if(z==3&&x==4&&y==5)
+					{
+						int xyz=0;
+					}
 					int imgposi[4]={PontImg.x-R+x,PontImg.y-R+y,PontImg.z-R+z,0};
-					if(x>0&&x<=R&&y>0&&y<=R&&z>0&&z<=R)
+					if(x>0&&x<nSOfRe-1&&y>0&&y<nSOfRe-1&&z>0&&z<nSOfRe-1)
 					{
 						Region[z][x][y]=0;
 					}
@@ -7255,6 +7283,10 @@ void SelCenSur3(zxhImageDataT<short>&imgRot,vector<PointILTypeDef>&vSeedsPonts_I
 			pseed.y=vSeedsPonts_IL[i].y;
 			pseed.z=vSeedsPonts_IL[i].z;
 			int NumberOfAngvecLabs=0;
+			if(nR==3&&pseed.x==173&&pseed.y==134&&pseed.z==188)
+			{
+				int x213=0;
+			}
 			Selec_Cent(imgRot,pseed,nR,NumberOfAngvecLabs);
 			Rot_Surf_R1.SetPixelByGreyscale(pseed.x,pseed.y,pseed.z,0,NumberOfAngvecLabs);
 			int cnum=vSeedsPonts_IL[i].vLnum[0];
@@ -8507,6 +8539,116 @@ bool BifurDecSur3(zxhImageDataT<short>&imgReadNewRaw)
 	SelCen_MaxVot(ImgSize,vSeedsPonts_IL,vSeedsPonts_IL_cent,imgCenLabel);
 	return true;
 }
+bool Gen_LocRegon(zxhImageDataT<short> &imgRot,PointImgTypeDef &PontImg,std::vector<std::vector<std::vector<int> > >&LoRe)
+{
+	int ImgSize[4]={1};
+	imgRot.GetImageSize(ImgSize[0],ImgSize[1],ImgSize[2],ImgSize[3]);
+	 int R=3;
+	int nSOfRe=2*R+1;
+	if(abs(PontImg.x)>R&&abs(PontImg.y)>R&&abs(PontImg.z)>R&&abs(PontImg.x+R)<=ImgSize[0]&&abs(PontImg.y+R)<=ImgSize[1]&&abs(PontImg.z+R)<=ImgSize[2])
+	{
+		for(int z=0;z<nSOfRe;z++)  
+		{  
+			for (int x=0;x<nSOfRe;x++)  
+			{  
+				for (int y=0;y<nSOfRe;y++)  
+				{  
+					int imgposi[4]={PontImg.x-R+x,PontImg.y-R+y,PontImg.z-R+z,0};
+			
+						LoRe[z][x][y]=imgRot.GetPixelGreyscale(imgposi[0],imgposi[1],imgposi[2],imgposi[3]);
+				}
+				}
+
+			}
+		}
+
+	return true;
+}
+bool Gen_Distmap(std::vector<std::vector<std::vector<int> > > &LoRe,std::vector<std::vector<std::vector<int> > >&LoRe_Map)
+{
+	int gNbr[26][3] = { 
+		{-1, 0, 0}, \
+		{-1, -1, 0}, \
+		{-1, 1, 0}, \
+		{-1, 0, -1}, \
+		{-1, -1, -1}, \
+		{-1, -1, 1}, \
+		{-1, 1, -1}, \
+		{-1, 1, 1}, \
+		{-1, 0, 1}, \
+		{1, 0, 0}, \
+		{1, -1, 0}, \
+		{1, 1, 0}, \
+		{1, 0, -1}, \
+		{1, -1, -1}, \
+		{1, -1, 1}, \
+		{1, 1, -1}, \
+		{1, 1, 1}, \
+		{1, 0, 1}, \
+		{ 0,-1, 0}, \
+		{ 0, 1, 0}, \
+		{ 0, 0,-1}, \
+		{ 0, 0, 1},\
+		{ 0, -1,-1}, \
+		{ 0, -1,1}, \
+		{ 0, 1,-1}, \
+		{ 0, 1,1}, \
+	};
+	PointImgTypeDef Pstar;
+	Pstar.x=3;
+	Pstar.y=3;
+	Pstar.z=3;
+	 int R=3;
+	int nSOfRe=2*R+1;
+	float fdist=0;
+	vector<PointImgTypeDef>vmap;
+	vmap.push_back(Pstar);
+	LoRe[Pstar.z][Pstar.y][Pstar.x]=0;
+	LoRe_Map[Pstar.z][Pstar.y][Pstar.x]=0;
+	
+		while(!vmap.empty())
+		{
+			PointImgTypeDef PontSeed=vmap[0];
+			fdist=fdist+1;
+			for (int i = 0; i < 26; i++)
+			{
+				int nx = PontSeed.x + gNbr[i][0];
+				int ny = PontSeed.y + gNbr[i][1];
+				int nz = PontSeed.z + gNbr[i][2];
+				int nint=LoRe[nz][ny][nx];
+				PointImgTypeDef tmp;
+				tmp.x=nx;
+				tmp.y=ny;
+				tmp.z=nz;
+				if(nx>=0&&nx<nSOfRe&&ny>=0&&ny<nSOfRe&&nz>=0&&nz<nSOfRe&&nint!=0)
+				{
+					LoRe[nz][ny][nx]=0;
+					LoRe_Map[nz][ny][nx]=fdist;
+					vmap.push_back(tmp);
+				}
+			}
+			vector<PointImgTypeDef>::iterator k = vmap.begin();
+			vmap.erase(k);
+		}
+
+	return true;
+}
+bool Gen_Dismap(zxhImageDataT<short> &imgRot,zxhImageDataT<short>&imgCent)
+{
+	vector<PointImgTypeDef> vSeedsPonts;
+	 Points_Init3(imgCent,vSeedsPonts);
+	 int R=3;
+	int nSOfRe=2*R+1;
+	 for(int i=0;i<vSeedsPonts.size();i++)
+	 {
+	std::vector<std::vector<std::vector<int> > > LoRe(nSOfRe,vector<vector<int> >(nSOfRe,vector<int>(nSOfRe,0)));  
+	   PointImgTypeDef cenPont=vSeedsPonts[i];
+	   Gen_LocRegon(imgRot,cenPont,LoRe);
+	   std::vector<std::vector<std::vector<int> > > LoRe_Map(nSOfRe,vector<vector<int> >(nSOfRe,vector<int>(nSOfRe,0)));  
+	   Gen_Distmap(LoRe,LoRe_Map);
+	 }
+	return true;
+}
 int main(int argc, char *argv[])
 {
 	//if( argc < 4 )
@@ -8614,8 +8756,10 @@ int main(int argc, char *argv[])
 	//
 	
     //---...----...----....
-/*
+
 	//get the central points
+
+/*
 	string strfilenameraw =  "J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CAE_ME_L.nii.gz";
 	//read the raw image
 	zxhImageDataT<short> imgReadRaw;
@@ -8643,51 +8787,68 @@ int main(int argc, char *argv[])
 	*/
 	//---...----...----....
 	
-	
+//----.....----.....----.....----.....----.....
 
+	string strrot =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot.nii.gz";
+	zxhImageDataT<short> imgRot;
+	if( zxh::OpenImage( &imgRot, strrot ) == false )
+	{
+		std::cerr << "Raw image(nifti-file) is not found!"; 
+		return -1;
+	}
+	string strcent =  "F:/Coronary_0/code/Resutsfusion/CentLab.nii.gz";
+	zxhImageDataT<short> imgCent;
+	if( zxh::OpenImage( &imgCent, strcent ) == false )
+	{
+		std::cerr << "Raw image(nifti-file) is not found!"; 
+		return -1;
+	}
+	//Generate the Local region
+	Gen_Dismap(imgRot,imgCent);
 
+//----.....----.....----.....----.....----.....
 
 //----....----....----....----....----....----....
 //get the link of the bifurcation points
 
-string strfilenameraw_rot =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot.nii.gz";
-zxhImageDataT<short> imgRot;
-if( zxh::OpenImage( &imgRot, strfilenameraw_rot ) == false )
-{
-	std::cerr << "Raw image(nifti-file) is not found!"; 
-	return -1;
-}
-
-string strfilenameraw_rotCent =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_CentLab.nii.gz";
-zxhImageDataT<short> imgRotCent;
-if( zxh::OpenImage( &imgRotCent, strfilenameraw_rotCent ) == false )
-{
-	std::cerr << "Raw image(nifti-file) is not found!"; 
-	return -1;
-}
-//get the branch points in order
-
-vector <PointImgTypeDef> vCenPont;
-GetBrPontsInOrder(imgRotCent,vCenPont);
-int R=3;
-vector<PointImgTypeDef> vpbitu;
-	vector<PointImgTypeDef> vptroot;
-Point_select(imgRot,vCenPont,R,vpbitu,vptroot);
-vector<PointLinkDef> vbitulink;
-Point_link(imgRot,imgRotCent,vpbitu,R,vbitulink);
-//save bifurcation points as img
-zxhImageDataT<short>imgVPbituRaw,imgVProotRaw;
-imgVPbituRaw.NewImage( imgRot.GetImageInfo() );
-MapImgPointsToImage(imgVPbituRaw,vpbitu);
-char *chResultName1="F:/Coronary_0/code/Resutsfusion/CAE_VPbitu.nii.gz";
-string chFileName1(chResultName1);
-zxh::SaveImage(&imgVPbituRaw,chFileName1.c_str());
+//string strfilenameraw_rot =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot.nii.gz";
+//zxhImageDataT<short> imgRot;
+//if( zxh::OpenImage( &imgRot, strfilenameraw_rot ) == false )
+//{
+//	std::cerr << "Raw image(nifti-file) is not found!"; 
+//	return -1;
+//}
 //
-imgVProotRaw.NewImage( imgRot.GetImageInfo() );
-MapImgPointsToImage(imgVProotRaw,vptroot);
-char *chResultName2="F:/Coronary_0/code/Resutsfusion/CAE_VProot.nii.gz";
-string chFileName2(chResultName2);
-zxh::SaveImage(&imgVProotRaw,chFileName2.c_str());
+//string strfilenameraw_rotCent =  "F:/Coronary_0/code/Resutsfusion/CAE_ME_L_Rot_CentLab.nii.gz";
+//zxhImageDataT<short> imgRotCent;
+//if( zxh::OpenImage( &imgRotCent, strfilenameraw_rotCent ) == false )
+//{
+//	std::cerr << "Raw image(nifti-file) is not found!"; 
+//	return -1;
+//}
+////get the branch points in order
+//
+//vector <PointImgTypeDef> vCenPont;
+//GetBrPontsInOrder(imgRotCent,vCenPont);
+//int R=3;
+//vector<PointImgTypeDef> vpbitu;
+//	vector<PointImgTypeDef> vptroot;
+//Point_select(imgRot,vCenPont,R,vpbitu,vptroot);
+//vector<PointLinkDef> vbitulink;
+//Point_link(imgRot,imgRotCent,vpbitu,R,vbitulink);
+////save bifurcation points as img
+//zxhImageDataT<short>imgVPbituRaw,imgVProotRaw;
+//imgVPbituRaw.NewImage( imgRot.GetImageInfo() );
+//MapImgPointsToImage(imgVPbituRaw,vpbitu);
+//char *chResultName1="F:/Coronary_0/code/Resutsfusion/CAE_VPbitu.nii.gz";
+//string chFileName1(chResultName1);
+//zxh::SaveImage(&imgVPbituRaw,chFileName1.c_str());
+////
+//imgVProotRaw.NewImage( imgRot.GetImageInfo() );
+//MapImgPointsToImage(imgVProotRaw,vptroot);
+//char *chResultName2="F:/Coronary_0/code/Resutsfusion/CAE_VProot.nii.gz";
+//string chFileName2(chResultName2);
+//zxh::SaveImage(&imgVProotRaw,chFileName2.c_str());
 
 //----....----....----....----....----....----....
 //-----.....-----.....-----.....-----.....-----.....-----.....-----.....
