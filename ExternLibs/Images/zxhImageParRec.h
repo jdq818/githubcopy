@@ -25,7 +25,7 @@
 ///
 /// \ingroup zxhImageData
 ///
-typedef PixelTypeDefault ParRecType;
+typedef ZXH_PixelTypeDefault ParRecType;
 class zxhImageParRec:
 	public zxhImageDataT<ParRecType>
 {

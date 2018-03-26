@@ -238,9 +238,9 @@ bool VesselnessMaskBaseOnDist(vector<PointCordTypeDef> vPathPointsWorld,zxhImage
 	for(int iy=0;iy<ImgNewVslsSize[1];++iy)
 	for(int ix=0;ix<ImgNewVslsSize[0];++ix)
 	{
-		float Pos[ImageDimensionMax]={ix,iy,iz,it};
+		float Pos[ZXH_ImageDimensionMax]={ix,iy,iz,it};
 		imgReadNewVsls.GetImageInfo()->ImageToWorld(Pos);
-		float PosWorld[ImageDimensionMax]={Pos[0],Pos[1],Pos[2],Pos[3]};
+		float PosWorld[ZXH_ImageDimensionMax]={Pos[0],Pos[1],Pos[2],Pos[3]};
 		if(!(InSphere(PosWorld,vPathPointsWorld)))
 		{
 			imgReadNewVsls.SetPixelByGreyscale(ix,iy,iz,it,-1);

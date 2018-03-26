@@ -43,7 +43,23 @@ namespace zxh
 #ifndef zxhlfloat
 #define zxhlfloat long double
 #endif
-#ifndef ImageDimensionMax
+	
+#ifndef float8
+#define float8 long double
+#endif
+#ifndef float4
+#define float4 float
+#endif
+
+#ifndef ZXH_Floatvtk // is double
+#define ZXH_Floatvtk double
+#endif
+
+
+#ifndef ZXH_ImageDimensionMax
+#define ZXH_ImageDimensionMax 4
+#endif
+	#ifndef ImageDimensionMax
 #define ImageDimensionMax 4
 #endif
 #ifndef ZXH_PI
@@ -87,6 +103,22 @@ namespace zxh
 #ifndef ZXH_MaxRegistrations
 #define ZXH_MaxRegistrations 20
 #endif
+	
+#ifndef ZXH_MaxNumOfLabelOfImage
+#define ZXH_MaxNumOfLabelOfImage 16
+#endif
+
+	
+#ifndef ZXH_SegMultiSequenceNumOfLabelMax
+#define ZXH_SegMultiSequenceNumOfLabelMax 8
+#endif
+#ifndef ZXH_SegMultiSequenceNumOfSeqMax
+#define ZXH_SegMultiSequenceNumOfSeqMax 8
+#endif
+
+#ifndef ZXH_DefaultAccumulatedDecreaseStepsForStop
+#define ZXH_DefaultAccumulatedDecreaseStepsForStop 6 //2
+#endif
 
 #ifndef ZXH_PHASE_FLOAT_INT
 #define ZXH_PHASE_FLOAT_INT 1000.0
@@ -110,7 +142,7 @@ typedef zxhmat44 mat44 ;
 //#endif
 
 #ifndef ZXH_LOCALAFFINE_MACRO
-#define ZXH_LocalAffineMaxNumber 128
+#define ZXH_LocalAffineMaxNumber 256
 #define ZXH_LocalAffineExponent 1 //2 //1.5 2, 4
 #define ZXH_LocalAffineFacetWeighting 0.5f //1.0/6=0.16667, 1.0/3=0.333333, 1/2, 
 // Weight=1+1*( ((1/0.5)^e-1) /0.5 ), if NOT pre-compute weight , then is Distance =0
@@ -246,9 +278,17 @@ ZXH_DLL_EXPORT void echo_zxh(int argc, char*argv[] );
 ///
 ZXH_DLL_EXPORT void echo_zxh();
 ///
-ZXH_DLL_EXPORT void NormaliseVector( float v[], int dimension ) ;
+ZXH_DLL_EXPORT void NormaliseVector( float v[], int dimension ) ; 
+	
 ///
-ZXH_DLL_EXPORT float MagnitudeOfVector( const float v[], const int dimension ) ;
+template<typename T>
+ZXH_DLL_EXPORT T MagnitudeOfVector( const T v[], const int dimension )
+{
+	T mag = 0 ;
+	for( int idim=0; idim<dimension; ++idim )
+		mag += v[idim]*v[idim] ;
+	return (T) sqrt(mag) ;
+} 
 ///
 ZXH_DLL_EXPORT void VectorOP_Normalise( float v[], int dimension )	;
 ///
@@ -307,6 +347,7 @@ bool FreeTwoDimArray( T** &p, int num1dim )
 		for( int i1=0; i1<num1dim; ++i1 ) 
 			if( p[i1] ) delete [] p[i1] ;
 		delete [] p ;
+		p = 0 ;
 	}
 	return true;
 }
@@ -321,22 +362,22 @@ bool VectorOP_MeanAndStd( T const * pData, int num, T2 &mean, T2 &standD )
     }
     if( num<10000)
     {
-        long double lmean = 0.0 ;
-        long double lsqx = 0.0 ;
+        zxhlfloat lmean = 0.0 ;
+        zxhlfloat lsqx = 0.0 ;
         for (int i=0; i< num; ++i)
         {
             lmean += pData[i];
             lsqx += pData[i]*pData[i];
         }
-        lmean /= (long double) num;
+        lmean /= (zxhlfloat) num;
 
         mean = T2(lmean) ;
-        standD = T2(sqrt( (lsqx-num*lmean*lmean)/(long double) (num-1) ) );
+        standD = T2(sqrt( (lsqx-num*lmean*lmean)/(zxhlfloat) (num-1) ) );
     }
     else
     {
-        long double lmean = 0.0, temsum = 0.0 ;
-        long double lsqx = 0.0 , temsqx = 0.0 ;
+        zxhlfloat lmean = 0.0, temsum = 0.0 ;
+        zxhlfloat lsqx = 0.0 , temsqx = 0.0 ;
         for (int i=0; i< num; ++i)
         {
             temsum += pData[i];
@@ -350,9 +391,9 @@ bool VectorOP_MeanAndStd( T const * pData, int num, T2 &mean, T2 &standD )
         lmean += temsum ; temsum = 0 ;
         lsqx += temsqx ; temsqx = 0 ;
 
-        lmean /= (long double) num;
+        lmean /= (zxhlfloat) num;
         mean = T2(lmean) ;
-        standD = T2(sqrt( (lsqx-num*lmean*lmean)/(long double)(num-1) ) );
+        standD = T2(sqrt( (lsqx-num*lmean*lmean)/(zxhlfloat)(num-1) ) );
     }
     return true;
 }
@@ -368,7 +409,7 @@ bool VectorOP_Sum( T const * pData, int num, T2 &sum )
     }
     if( num<10000)
     {
-        long double lsum = 0.0 ; 
+        zxhlfloat lsum = 0.0 ; 
         for (int i=0; i< num; ++i)
         {
             lsum += pData[i]; 
@@ -377,7 +418,7 @@ bool VectorOP_Sum( T const * pData, int num, T2 &sum )
     }
     else
     {
-        long double lsum = 0.0, temsum = 0.0 ; 
+        zxhlfloat lsum = 0.0, temsum = 0.0 ; 
         for (int i=0; i< num; ++i)
         {
             temsum += pData[i]; 
@@ -410,6 +451,40 @@ ZXH_DLL_EXPORT template <class type> type NGaussian( const type f )
 {
 	return (exp(-0.5*f*f ));
 }; 
+///\return  
+ZXH_DLL_EXPORT template <class type> type NGaussianTruncate( const type f, const float fTruncateTimesOfSigma )
+{
+	if( abs(f) >= fTruncateTimesOfSigma && fTruncateTimesOfSigma>0 ) return (exp(-0.5*fTruncateTimesOfSigma*fTruncateTimesOfSigma )) ;
+	return (exp(-0.5*f*f ));
+}; 
+///\return gaussian
+ZXH_DLL_EXPORT template <class type> type GaussianTruncate( type f, const type u, const type sigma, const float fTruncateTimesOfSigma )  
+{ // 0.39894228 = 1/sqrt(2*pi)
+	if( sigma> 0 )
+	{
+		type value = abs((f-u)/sigma) ; 
+		if(  value< fTruncateTimesOfSigma || fTruncateTimesOfSigma<=0 )  
+			return (0.39894228/sigma *exp(-0.5*value*value));
+		else 
+			return (0.39894228/sigma *exp(-0.5*fTruncateTimesOfSigma*fTruncateTimesOfSigma ));
+	}
+	else std::cerr<<"error: sigma=0 in Gaussian function\n";
+	return sigma ; 
+};
+///\return gaussian derivative
+ZXH_DLL_EXPORT template <class type> type GaussianTruncateDerivative( type f, const type u, const type sigma, const float fTruncateTimesOfSigma )  
+{ // 0.39894228 = 1/sqrt(2*pi)
+	if( sigma> 0 )
+	{
+		type value = (f-u)/sigma ; 
+		if(  abs(value)< fTruncateTimesOfSigma || fTruncateTimesOfSigma<=0 )  
+			return (0.39894228/sigma *exp(-0.5*value*value))  * (-value / sigma) ;
+		else 
+			return (0.39894228/sigma *exp(-0.5*fTruncateTimesOfSigma*fTruncateTimesOfSigma ))  * (-fTruncateTimesOfSigma / sigma);
+	}
+	else std::cerr<<"error: sigma=0 in Gaussian function\n";
+	return sigma ; 
+};
 ///
 ZXH_DLL_EXPORT
 template <class type>
