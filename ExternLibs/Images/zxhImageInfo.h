@@ -12,6 +12,8 @@
 #define zxhImageInfo_h
 #include "zxh.h"
 
+#include <iostream>
+#include <sstream>
 ///
 /// \class zxhImageInfo
 /// \brief: record image info ; when copy or remove orientation info, always use method(-2); 
@@ -47,12 +49,12 @@
 #define GIPL_C_INT        160
 #define GIPL_C_FLOAT      192
 #define GIPL_C_DOUBLE     193
-#define GIPL_NONE		  1024
-enum zxhEnumerateDataType { zxhDataTypeBinary = GIPL_BINARY, zxhDataTypeChar=GIPL_CHAR, zxhDataTypeUChar=GIPL_U_CHAR,
-	zxhDataTypeShort=GIPL_SHORT, zxhDataTypeUShort=GIPL_U_SHORT, zxhDataTypeInt=GIPL_INT, zxhDataTypeUInt=GIPL_U_INT,
-    zxhDataTypeFloat=GIPL_FLOAT, zxhDataTypeDouble=GIPL_DOUBLE, 
-	zxhDataTypeCShort=GIPL_C_SHORT, zxhDataTypeCInt=GIPL_C_INT, zxhDataTypeCFloat=GIPL_C_FLOAT, zxhDataTypeCDouble=GIPL_C_DOUBLE,
-	zxhDataTypeNone=GIPL_NONE};
+#define GIPL_NONE		  1024 
+enum ZXH_EnumerateDataType { ZXH_DataTypeBinary = GIPL_BINARY, ZXH_DataTypeChar=GIPL_CHAR, ZXH_DataTypeUChar=GIPL_U_CHAR,
+	ZXH_DataTypeShort=GIPL_SHORT, ZXH_DataTypeUShort=GIPL_U_SHORT, ZXH_DataTypeInt=GIPL_INT, ZXH_DataTypeUInt=GIPL_U_INT,
+    ZXH_DataTypeFloat=GIPL_FLOAT, ZXH_DataTypeDouble=GIPL_DOUBLE, 
+	ZXH_DataTypeCShort=GIPL_C_SHORT, ZXH_DataTypeCInt=GIPL_C_INT, ZXH_DataTypeCFloat=GIPL_C_FLOAT, ZXH_DataTypeCDouble=GIPL_C_DOUBLE,
+	ZXH_DataTypeNone=GIPL_NONE};
 
 #define ANALYZEMAGIC 348
 // GIPL image types
@@ -91,7 +93,7 @@ enum zxhEnumerateDataType { zxhDataTypeBinary = GIPL_BINARY, zxhDataTypeChar=GIP
 #define NIFTI_TYPE_FLOAT32        16
 									   /*! 64 bit complex = 2 32 bit floats. */
 #define NIFTI_TYPE_COMPLEX64      32
-									   /*! 64 bit float = double. */
+									   /*! 64 bit float = floag8. */
 #define NIFTI_TYPE_FLOAT64        64
 									   /*! 3 8 bit bytes. */
 #define NIFTI_TYPE_RGB24         128
@@ -105,7 +107,7 @@ enum zxhEnumerateDataType { zxhDataTypeBinary = GIPL_BINARY, zxhDataTypeChar=GIP
 #define NIFTI_TYPE_INT64        1024
 									   /*! unsigned long long. */
 #define NIFTI_TYPE_UINT64       1280
-									   /*! 128 bit float = long double. */
+									   /*! 128 bit float = long-long- double. */
 #define NIFTI_TYPE_FLOAT128     1536
 									   /*! 128 bit complex = 2 64 bit floats. */
 #define NIFTI_TYPE_COMPLEX128   1792
@@ -161,11 +163,15 @@ public:
 	virtual int GetNumberOfPixels()	const	{ return Size[0]* Size[1]* Size[2]* Size[3]; };
 
 	/// get new size if change to different extent
-	virtual void GetSizeUsingExtent(const float e[ImageDimensionMax], int s[ImageDimensionMax]) const ;
+	virtual void GetSizeUsingExtent(const float e[ZXH_ImageDimensionMax], int s[ZXH_ImageDimensionMax]) const ;
 	/// get new size if change to different spacing
-	virtual void GetSizeUsingSpacing(const float sp[ImageDimensionMax], int sz[ImageDimensionMax]) const ;
+	virtual void GetSizeUsingSpacing(const float sp[ZXH_ImageDimensionMax], int sz[ZXH_ImageDimensionMax]) const ;
 	///
 	virtual std::string	GetPrintString() const;
+	///
+	virtual std::string	GetPrintStringSimpleQuuatern() const ;  
+	/// 
+	virtual bool SetImageInfoSimpleQuaternFromStream( std::ifstream& ifs) ;
 	///
 	void WorldToImage( float fv[] ) const ;
 	///
@@ -191,10 +197,31 @@ public:
 
 	/// image data index to image grid indices
 	inline void		IndexToGrid(const int index, int *ix, int *iy, int *iz=0, int*it=0 ) const;
+	///
+	inline void		IndexToWorld(const int index, float *w ) const;
 	
 	///
 	bool	InsideImageWithSliceThickness( const float pvox[] ) const ; 
-
+		
+	///
+	bool	InsideImage(const float fx, const float fy, const float fz, const float ft) const
+	{ 
+		float fgrid[] = {fx,fy,fz,ft} ;
+		for(int idim=0;idim< Dimension;++idim)
+			if( fgrid[idim]<0 || fgrid[idim]> Size[idim]-1 )
+			return false;
+		return true;
+	};
+	/// \return whether the physical coordinate is inside the image
+	bool	InsideImageWorld(const float fx, const float fy, const float fz, const float ft) const
+	{
+		float fgrid[] = {fx,fy,fz,ft} ;
+		this->WorldToImage( fgrid ) ;
+		for(int idim=0;idim< Dimension;++idim)
+			if( fgrid[idim]<0 || fgrid[idim]> Size[idim]-1 )
+			return false;
+		return true;
+	} ;
 	///analyze_to_gipl_type: Convert from Analyze/nifti to gipl image types
 	static short Analyze_to_gipl_type(short analyze_type)
 	{
@@ -252,8 +279,25 @@ public:
 	virtual void GetMatrixImageToPhysical( float *m ) const ; 
 	/// m[4][4]
 	virtual void GetMatrixPhysicalToWorld( float *m ) const ; 
+
+	/// note that for eroade 1 pixel, the kernel should be only ONE pixel, as it will remove the current pixel
+	/// return num of pixels in the offset array, which is a cube; subx/y/z is the sampling interval 
+	int	ConstructIndexOffsetCube( int radiusx, int radiusy, int radiusz, int subx, int suby, int subz, int * offset ) const; 
+	/// return num of pixels in the offset array, which is a sphere with radius in mm unit 
+	int	ConstructIndexOffsetSphere( float fPhysRadiusMM, int* offset ) const; 
+	/// return num of pixels in the offset array, which is a 2D circle with radius in mm unit 
+	int	ConstructIndexOffset2DCirc( float fPhysRadiusMM, int* offset ) const; 
+	/// return num of pixels (7, first one is the center) in the offset array, which is a sphere with radius in 1 pixel 
+	int	ConstructIndexOffsetNeighbour( int* offset ) const; 
+	/// return num of pixels (5, first one is the center) in the offset array, which is a sphere with radius in 1 pixel 
+	int	ConstructIndexOffsetNeighbour2D( int* offset ) const; 
+
+
 	///
-	void	ConstructIndexOffset( int radiusx, int radiusy, int radiusz, int subx, int suby, int subz, int * offset ) const; 
+	void GetOrthogonalOrientationWorldCoordinateCornersSpacingSize( float Corner0World[], float Corner1World[], float SpacingWorld[], int WorldImageSize[] ) const;
+	/// recompute Spacing, Size and oreientation, preset Dimension and Quatern four parameters before using this
+	void UpdateOrthogonalImageQuaternInfoUsingWorldInfo( const float* Corner0World, const float* Corner1World, const float* SpacingWorld, const int* WorldImageSize ) ;
+
 public:
 	///
 	std::string		FileName;
@@ -271,13 +315,13 @@ public:
 
 	// -------- method 1 -------- xyz = ijk *spacing
 	/// image spacing info default 1, [0-2] unit is mm, [3]is temporal dimension and unit is second
-	float			Spacing[ImageDimensionMax];
+	float			Spacing[ZXH_ImageDimensionMax];
 	/// image size default 1, [3] is num. of phases
-	int				Size[ImageDimensionMax];
+	int				Size[ZXH_ImageDimensionMax];
 
 	// -------- method 2 -------- for gipl
 	/// gipl origin
-	float			Origin[ImageDimensionMax];
+	float			Origin[ZXH_ImageDimensionMax];
 	/// orientation rotation matrix (ORM) ;
 	///		ORM[0-2][0] is x-axis, ORM[0-2][1] is y-axis, ORM[0-2][2] is z-axis
 	/// 	notice that x-axis -> gipl.header[106,110,114]; y-axis -> gipl.header[122,126,130]
@@ -322,5 +366,17 @@ inline void	zxhImageInfo::IndexToGrid(const int index, int *ix, int *iy, int *iz
 	if( iz!=0 ) *iz = index%(Size[0]*Size[1]*Size[2])/(Size[1]*Size[0]) ;
 	if( it!=0 ) *it = index/(Size[0]*Size[1]*Size[2]) ;
 }
+///
+inline void	zxhImageInfo::IndexToWorld(const int index, float *w ) const
+{ 
+	int ix,iy,iz,it ;
+	ix = index%(Size[0]*Size[1]*Size[2])%(Size[1]*Size[0])%Size[0] ;
+	iy = index%(Size[0]*Size[1]*Size[2])%(Size[1]*Size[0])/Size[0] ;
+	iz = index%(Size[0]*Size[1]*Size[2])/(Size[1]*Size[0]) ;
+	it = index/(Size[0]*Size[1]*Size[2]) ;
+	w[0]=ix;w[1]=iy;w[2]=iz;w[3]=it;
+	this->ImageToWorld( w ) ; 
+}
+
 #endif //zxhImageInfo_h
 

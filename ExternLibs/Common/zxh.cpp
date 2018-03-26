@@ -205,7 +205,6 @@ ZXH_DLL_EXPORT bool ScanFloat(std::ifstream&ifs,char*buffer,int ibuffersize,floa
 		sLine=buffer;
 		ParseStringLine(sContent,sComment,sLine);
 		trim_both(sContent);
-	
 		if(sContent.length()!=0)
 		{
 			std::istringstream istr;
@@ -447,18 +446,25 @@ ZXH_DLL_EXPORT void echo_zxh(int argc, char*argv[] )
 
 ZXH_DLL_EXPORT void echo_zxh()
 {
-	if( glbVerboseOutput<=0 ) return ;
+	if( glbVerboseOutput==0 ) 
+	{		
+		std::cout<<"* ***************************************************************** *\n"; 
+		std::cout<<"*      zxhproj, version 2.2 (c) 2004-2016 ZHUANG, XiaHai code.      *\n";
+		std::cout<<"*          (zhuangxiahai@163.com). All rights reserved.             *\n";
+		std::cout<<"* ***************************************************************** *\n";  
+		return ;
+	}
 #ifdef HAS_BUILD_RELEASE
 	std::cout<<"* ***************************************************************** *\n";
 	std::cout<<"*  This is testing code and not free from bugs. The software is for *\n";
 	std::cout<<"*  research purpose ONLY, and should NOT be used in any clinical    *\n";
 	std::cout<<"*  related situations. Any usage is entirely at your own risk.      *\n";
-	std::cout<<"*  zxhproj, version 2.2 (c) 2004-2015 ZHUANG, XiaHai Release Build. *\n";
+	std::cout<<"*  zxhproj, version 2.2 (c) 2004-2016 ZHUANG, XiaHai Release Build. *\n";
 	std::cout<<"*          (zhuangxiahai@163.com). All rights reserved.             *\n";
 	std::cout<<"* ***************************************************************** *\n"; 
 #else 
 	std::cout<<"* ***************************************************************** *\n"; 
-	std::cout<<"*      zxhproj, version 2.2 (c) 2004-2015 ZHUANG, XiaHai code.      *\n";
+	std::cout<<"*      zxhproj, version 2.2 (c) 2004-2016 ZHUANG, XiaHai code.      *\n";
 	std::cout<<"*          (zhuangxiahai@163.com). All rights reserved.             *\n";
 	std::cout<<"* ***************************************************************** *\n";  
 #endif
@@ -545,14 +551,6 @@ ZXH_DLL_EXPORT void VectorOP_Multiple( const float A[], const float f, float *Ax
 		Axf[idim] = A[idim]*f ; 
 }
 
-///
-ZXH_DLL_EXPORT float MagnitudeOfVector( const float v[], const int dimension )
-{
-	float mag = 0 ;
-	for( int idim=0; idim<dimension; ++idim )
-		mag += v[idim]*v[idim] ;
-	return sqrt(mag) ;
-} 
 
 ZXH_DLL_EXPORT void MatrixIdentity(float *pMatDes, const int iMatrixLength )
 {

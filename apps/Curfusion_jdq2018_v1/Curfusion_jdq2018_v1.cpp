@@ -165,8 +165,15 @@ typedef struct
 	float x;
 	float y;
 	float z;
-	vector<int>Lnum;
+	vector<int>vLnum;
 }PointCLTypeDef;
+typedef struct
+{
+	float x;
+	float y;
+	float z;
+	vector<pair<int,int>>vLPnum;
+}PointLPTypeDef;
 typedef struct
 {
 	int x;
@@ -255,6 +262,20 @@ void WriteVtk(vector< PointCordTypeDef > PointCord, char* chFileName)
 	iVtkWriter->Write();
 }
 void WriteCA2Txt(vector<PointCordTypeDef> vPoints,char *chFileName)
+{
+	ofstream WriteFileTxt(chFileName);
+	int nPointNum = vPoints.size();
+	float fImgPixel[3];	
+	for (int i = 0; i < nPointNum; i++)
+	{
+		fImgPixel[0] = vPoints[i].x;
+		fImgPixel[1] = vPoints[i].y;
+		fImgPixel[2] = vPoints[i].z;
+		WriteFileTxt << right<<fixed<<setprecision(4) <<fImgPixel[0] << " " << fImgPixel[1] << " " << fImgPixel[2] << '\n';
+	}	
+
+}
+void WriteCA2Txt_CL(vector<PointCLTypeDef> vPoints,char *chFileName)
 {
 	ofstream WriteFileTxt(chFileName);
 	int nPointNum = vPoints.size();
@@ -685,6 +706,58 @@ bool TransAllPontsIntoUnorga(vector<vLinesDef>&vline,vector<PointCordTypeDef> &v
 	}
 	return true;
 }
+bool TransAllPontsIntoUnorga_CL(vector<vLinesDef>&vline,vector<PointCLTypeDef> &vUnorgaPointsWorld)
+{
+	int nvline=vline.size();
+	if(!vUnorgaPointsWorld.empty())
+		vUnorgaPointsWorld.clear();
+
+	for(int i=0;i<nvline;i++)
+	{
+		int npont=vline[i].vLine.size();
+		for(int j=0;j<npont;j++)
+		{
+			PointCLTypeDef PonDeftmp;
+			PonDeftmp.x=(vline[i].vLine)[j]._x;
+			PonDeftmp.y=(vline[i].vLine)[j]._y;
+			PonDeftmp.z=(vline[i].vLine)[j]._z;
+			PonDeftmp.vLnum.push_back(i);
+			vUnorgaPointsWorld.push_back(PonDeftmp);
+		}
+	}
+	return true;
+}
+bool TransAllPontsIntoUnorga_LP(vector<vLinesDef>&vline,vector<PointCLTypeDef> &vUnorgaPointsWorld,vector<PointLPTypeDef>&vUnorgaPointsWorld_LP)
+{
+	int nvline=vline.size();
+	if(!vUnorgaPointsWorld.empty())
+		vUnorgaPointsWorld.clear();
+
+	for(int i=0;i<nvline;i++)
+	{
+		int npont=vline[i].vLine.size();
+		for(int j=0;j<npont;j++)
+		{
+			//
+			PointCLTypeDef PonDeftmp;
+			PonDeftmp.x=(vline[i].vLine)[j]._x;
+			PonDeftmp.y=(vline[i].vLine)[j]._y;
+			PonDeftmp.z=(vline[i].vLine)[j]._z;
+			PonDeftmp.vLnum.push_back(i);
+			vUnorgaPointsWorld.push_back(PonDeftmp);
+			//
+			PointLPTypeDef PonLPtmp;
+			PonLPtmp.x=(vline[i].vLine)[j]._x;
+			PonLPtmp.y=(vline[i].vLine)[j]._y;
+			PonLPtmp.z=(vline[i].vLine)[j]._z;
+			pair<int,int>pij;
+			pij=make_pair(i,j);
+			PonLPtmp.vLPnum.push_back(pij);
+			vUnorgaPointsWorld_LP.push_back(PonLPtmp);
+		}
+	}
+	return true;
+}
 bool Collet1(PointCordTypeDef PCent,float H,vector<PointCordTypeDef> &vUnorgaPointsWorld,vector<PointCordTypeDef> &vLocalPointsInBallWorld)
 {
 	float fCent[3]={PCent.x,PCent.y,PCent.z};
@@ -703,7 +776,29 @@ bool Collet1(PointCordTypeDef PCent,float H,vector<PointCordTypeDef> &vUnorgaPoi
 
 	return true;
 }
+bool Collet1_CL(PointCLTypeDef PCent,float H,vector<PointCLTypeDef> &vUnorgaPointsWorld,vector<PointCLTypeDef> &vLocalPointsInBallWorld)
+{
+	float fCent[3]={PCent.x,PCent.y,PCent.z};
+	int nsize=vUnorgaPointsWorld.size();
+	if(!vLocalPointsInBallWorld.empty())
+		vLocalPointsInBallWorld.clear();
+	for(int i=0;i<nsize;i++)
+	{
+		float fTemp[3]={vUnorgaPointsWorld[i].x,vUnorgaPointsWorld[i].y,vUnorgaPointsWorld[i].z};
+		float fdist=zxh::VectorOP_Distance(fCent,fTemp,3);
+		if(fdist<=H)
+		{
+			PointCLTypeDef SBtmpPont;
+			SBtmpPont.x=vUnorgaPointsWorld[i].x;
+			SBtmpPont.y=vUnorgaPointsWorld[i].y;
+			SBtmpPont.z=vUnorgaPointsWorld[i].z;
+			SBtmpPont.vLnum.push_back(i);
+			vLocalPointsInBallWorld.push_back(SBtmpPont);
+		}
+	}
 
+	return true;
+}
 bool StorUnique(vector<PointCordTypeDef> &vUnorgaPointsWorld)
 {
 	bool bunique=true;
@@ -717,6 +812,68 @@ bool StorUnique(vector<PointCordTypeDef> &vUnorgaPointsWorld)
 			if(dist<0.00001)
 			{
 				vUnorgaPointsWorld.erase(vUnorgaPointsWorld.begin()+j);
+				j--;
+			}
+		}
+	}
+	return true;
+}
+bool StorUnique_CL(vector<PointCLTypeDef> &vUnorgaPointsWorld)
+{
+	bool bunique=true;
+	for(int i=0;i<vUnorgaPointsWorld.size();i++)
+	{
+		float fi[3]={vUnorgaPointsWorld[i].x,vUnorgaPointsWorld[i].y,vUnorgaPointsWorld[i].z};
+		for(int j=i+1;j<vUnorgaPointsWorld.size();j++)
+		{
+			PointCLTypeDef tmpj;
+			tmpj=vUnorgaPointsWorld[j];
+			float fj[3]={vUnorgaPointsWorld[j].x,vUnorgaPointsWorld[j].y,vUnorgaPointsWorld[j].z};
+			float dist=zxh::VectorOP_Distance(fi,fj,3);
+			if(dist<0.00001)
+			{
+				vUnorgaPointsWorld[i].vLnum.push_back(tmpj.vLnum[0]);
+				vUnorgaPointsWorld.erase(vUnorgaPointsWorld.begin()+j);
+				j--;
+			}
+		}
+	}
+	return true;
+}
+bool StorUnique_LP(vector<PointCLTypeDef> &vUnorgaPointsWorld,vector<PointLPTypeDef>&vUnorgaPointsWorld_LP)
+{
+	for(int i=0;i<vUnorgaPointsWorld.size();i++)
+	{
+		float fi[3]={vUnorgaPointsWorld[i].x,vUnorgaPointsWorld[i].y,vUnorgaPointsWorld[i].z};
+		for(int j=i+1;j<vUnorgaPointsWorld.size();j++)
+		{
+			PointCLTypeDef tmpj;
+			tmpj=vUnorgaPointsWorld[j];
+			float fj[3]={vUnorgaPointsWorld[j].x,vUnorgaPointsWorld[j].y,vUnorgaPointsWorld[j].z};
+			float dist=zxh::VectorOP_Distance(fi,fj,3);
+			if(dist<0.00001)
+			{
+				vUnorgaPointsWorld[i].vLnum.push_back(tmpj.vLnum[0]);
+				vUnorgaPointsWorld.erase(vUnorgaPointsWorld.begin()+j);
+				j--;
+			}
+		}
+	}
+	//
+		for(int i=0;i<vUnorgaPointsWorld_LP.size();i++)
+	{
+		float fi[3]={vUnorgaPointsWorld_LP[i].x,vUnorgaPointsWorld_LP[i].y,vUnorgaPointsWorld_LP[i].z};
+		for(int j=i+1;j<vUnorgaPointsWorld_LP.size();j++)
+		{
+			PointLPTypeDef tmpj;
+			tmpj=vUnorgaPointsWorld_LP[j];
+			float fj[3]={vUnorgaPointsWorld_LP[j].x,vUnorgaPointsWorld_LP[j].y,vUnorgaPointsWorld_LP[j].z};
+			float dist=zxh::VectorOP_Distance(fi,fj,3);
+			if(dist<0.00001)
+			{
+				vUnorgaPointsWorld_LP[i].vLPnum.push_back(tmpj.vLPnum[0]);
+				//vUnorgaPointsWorld_LP[i].vLnum.push_back(tmpj.vLnum[0]);
+				vUnorgaPointsWorld_LP.erase(vUnorgaPointsWorld_LP.begin()+j);
 				j--;
 			}
 		}
@@ -910,6 +1067,92 @@ bool PlaneFitting(PointCordTypeDef &PfirPont,float H,vector<PointCordTypeDef> &v
 	}
 	return true;
 }
+bool PlaneFitting_CL(PointCLTypeDef &PfirPont,float H,vector<PointCLTypeDef> &vPathPointsWorld,float fabc[4])
+{
+	//z=a*x+b*y+c;
+	int n=vPathPointsWorld.size();
+	Array<double, 1, 1000> Mx,My,Mz,Mw;
+	//initialization
+	for(int i=0;i<1000;i++)
+	{
+		Mx(0,i)=0;
+		My(0,i)=0;	
+		Mz(0,i)=0;	
+		Mw(0,i)=0;	
+	}
+	//tranform the point position to matrix
+	for(int i=0;i<n;i++)
+	{
+		Mx(0,i)=vPathPointsWorld[i].x;
+		My(0,i)=vPathPointsWorld[i].y;	
+		Mz(0,i)=vPathPointsWorld[i].z;	
+	}
+		//tranform the point position to matrix
+	float fmfirsyz[3]={PfirPont.x,PfirPont.y,PfirPont.z};
+	for(int i=0;i<n;i++)
+	{
+		Mx(0,i)=vPathPointsWorld[i].x;
+		My(0,i)=vPathPointsWorld[i].y;	
+		Mz(0,i)=vPathPointsWorld[i].z;	
+		//calculate the weight
+		//w_i=(2*r^3/H^3-3*r^2/H^2+1)
+		float fmxyz[3]={vPathPointsWorld[i].x,vPathPointsWorld[i].y,vPathPointsWorld[i].z};
+		float fr2=(zxh::VectorOP_Distance(fmfirsyz,fmxyz,3))*(zxh::VectorOP_Distance(fmfirsyz,fmxyz,3));
+		//w_i=(2*r^3/H^3-3*r^2/H^2+1)
+		//float fwi=2*pow(fr2,3)/pow(H,3)-3*pow(fr2,2)/pow(H,2)+1;
+		//w_i=exp(-pow(r,2)/pow(H,2))
+		float fwi=exp(-pow(fr2,2)/pow(H,2));
+		Mw(0,i)=1;
+	}
+
+	Matrix<double, 3, 3>MA,MA_inv;
+	Matrix<double, 3, 1>Mb;
+	Matrix<double, 3, 1>Mabc;
+	//Ax=b
+	//generate A matrx
+	MA(0,0)=(Mw*Mx*Mx).sum();
+	MA(1,1)=(Mw*My*My).sum();
+	MA(2,2)=Mw.sum();
+
+	MA(0,1)=(Mw*Mx*My).sum();
+	MA(1,0)=(Mw*Mx*My).sum();
+
+	MA(0,2)=Mx.sum();
+	MA(2,0)=Mx.sum();
+
+	MA(1,2)=My.sum();
+	MA(2,1)=My.sum();
+	//generate b matrx
+	Mb(0,0)=(Mw*Mx*Mz).sum();
+	Mb(1,0)=(Mw*My*Mz).sum();
+	Mb(2,0)=(Mw*Mz).sum();
+	float fmadet=MA.determinant();
+
+
+	////gerate A_inverse
+	//MA_inv=MA.inverse();
+
+	////result of abc
+	//Mabc=MA_inv*Mb;
+	Mabc = MA.ldlt().solve(Mb);
+	fabc[0]=Mabc(0,0);
+	fabc[1]=Mabc(1,0);
+	fabc[2]=-1;
+	fabc[3]=Mabc(2,0);
+	//
+
+	Matrix<double, 3, 1>xx;
+	xx=MA*Mabc-Mb;
+	////Mean square deviation
+	float fmsd=0;
+	for(int i=0;i<n;i++)
+	{
+		float fcurpont[3]={vPathPointsWorld[i].x,vPathPointsWorld[i].y,vPathPointsWorld[i].z};	
+		float f_dist_Curvefit=fabsf(fabc[0]*fcurpont[0]+fabc[1]*fcurpont[1]+fabc[2]*fcurpont[2]+fabc[3])/sqrt(fabc[0]*fabc[0]+fabc[1]*fabc[1]+fabc[2]*fabc[2]);
+		fmsd=fmsd+f_dist_Curvefit;
+	}
+	return true;
+}
 bool ProjPontsToPlaen(vector<PointCordTypeDef> & vLocalPointsInBallWorld,float fabc[4],PointCordTypeDef Pcent, Matrix<float,1,3> &MPro_Pcent,vector<PointCordTypeDef> &Pro_vLocalPointsInBallWorld)
 {
 	if(!Pro_vLocalPointsInBallWorld.empty())
@@ -931,6 +1174,47 @@ bool ProjPontsToPlaen(vector<PointCordTypeDef> & vLocalPointsInBallWorld,float f
 		TempPont.x=ft*fabc[0]+fxyz[0];
 		TempPont.y=ft*fabc[1]+fxyz[1];
 		TempPont.z=ft*fabc[2]+fxyz[2];
+		Pro_vLocalPointsInBallWorld.push_back(TempPont);
+	}
+	MPro_Pcent(0,0)=Pro_vLocalPointsInBallWorld[ncentid].x;
+	MPro_Pcent(0,1)=Pro_vLocalPointsInBallWorld[ncentid].y;
+	MPro_Pcent(0,2)=Pro_vLocalPointsInBallWorld[ncentid].z;
+	//Mean square deviation
+	float fmsd=0;
+	float fmsd1=0;
+	for(int i=0;i<n;i++)
+	{
+		float fcurpont[3]={Pro_vLocalPointsInBallWorld[i].x,Pro_vLocalPointsInBallWorld[i].y,Pro_vLocalPointsInBallWorld[i].z};	
+		float f_dist_Curvefit=fabsf(fabc[0]*fcurpont[0]+fabc[1]*fcurpont[1]+fabc[2]*fcurpont[2]+fabc[3])/sqrt(fabc[0]*fabc[0]+fabc[1]*fabc[1]+fabc[2]*fabc[2]);
+		float fcurpont_befpro[3]={vLocalPointsInBallWorld[i].x,vLocalPointsInBallWorld[i].y,vLocalPointsInBallWorld[i].z};	
+		float f_dist_Curvefit1=zxh::VectorOP_Distance(fcurpont,fcurpont_befpro,3);
+		fmsd1=fmsd1+f_dist_Curvefit1;
+		fmsd=fmsd+f_dist_Curvefit;
+	}
+	return true;
+}
+bool ProjPontsToPlaen_CL(vector<PointCLTypeDef> & vLocalPointsInBallWorld,float fabc[4],PointCLTypeDef Pcent, Matrix<float,1,3> &MPro_Pcent,vector<PointCLTypeDef> &Pro_vLocalPointsInBallWorld)
+{
+	if(!Pro_vLocalPointsInBallWorld.empty())
+		Pro_vLocalPointsInBallWorld.clear();
+	int n=vLocalPointsInBallWorld.size();
+	//find the center point
+	int ncentid=0;
+	for(int i=0;i<n;i++)
+	{
+		if(Pcent.x==vLocalPointsInBallWorld[i].x&&Pcent.y==vLocalPointsInBallWorld[i].y&&Pcent.z==vLocalPointsInBallWorld[i].z)
+			ncentid=i;
+	}
+	//other points
+	for(int i=0;i<n;i++)
+	{
+		float fxyz[3]={vLocalPointsInBallWorld[i].x,vLocalPointsInBallWorld[i].y,vLocalPointsInBallWorld[i].z};
+		float ft=(-fabc[0]*fxyz[0]-fabc[1]*fxyz[1]-fabc[2]*fxyz[2]-fabc[3])/(fabc[0]*fabc[0]+fabc[1]*fabc[1]+fabc[2]*fabc[2]);
+		PointCLTypeDef TempPont;
+		TempPont.x=ft*fabc[0]+fxyz[0];
+		TempPont.y=ft*fabc[1]+fxyz[1];
+		TempPont.z=ft*fabc[2]+fxyz[2];
+		TempPont.vLnum.push_back(vLocalPointsInBallWorld[i].vLnum[0]);
 		Pro_vLocalPointsInBallWorld.push_back(TempPont);
 	}
 	MPro_Pcent(0,0)=Pro_vLocalPointsInBallWorld[ncentid].x;
@@ -1157,6 +1441,63 @@ bool RotaPontsToLoca1(vector<PointCordTypeDef> &vPathPointsWorld,float fabc[3],M
 		PnewPont.x=MnewPont(0,0);
 		PnewPont.y=MnewPont(0,1);
 		PnewPont.z=MnewPont(0,2);
+		vPathRotedPointsLocWorld.push_back(PnewPont);
+		//cout<<MnewPont<<endl;
+	}
+	MPro_Pcent_2D(0,0)=vPathRotedPointsLocWorld[ncentid].x;
+	MPro_Pcent_2D(0,1)=vPathRotedPointsLocWorld[ncentid].y;
+
+	//cout<<MfifthPontT<<endl;
+
+	return true;
+}
+bool RotaPontsToLoca1_CL(vector<PointCLTypeDef> &vPathPointsWorld,float fabc[3],Matrix<float,1,3> &MfirPont,Matrix<float,1,2> &MPro_Pcent_2D,vector<PointCLTypeDef> &vPathRotedPointsLocWorld,Matrix<float,3,3> &Mrx1,Matrix<float,3,3> &Mrx2)
+{
+	// the target of this function is to transform the vector v=(a, b,-1) to vt=(0, 0, 1)
+	//step1: rotate v around x-axis to xz plane as v1 ; the angle alpha=arccos<v_prj_to_yz, z>, where v_prj_to_yz is the projection of v to yz plane
+	// judge which quadrant
+	//a*x+b*y+c*z+d=0;
+	float fprj_v_yzp[3]={0,fabc[1],fabc[2]};
+	float fglozaxis[3]={0,0,1};
+	
+	CalcRotMatr1(fglozaxis,fprj_v_yzp,"yz",Mrx1);
+	//rotate around x axis
+	MatrixXf Mabc(1,3),MabcT(1,3);
+	Mabc<<fabc[0],fabc[1],fabc[2];
+	MabcT=Mabc*Mrx1;
+	//cout<<Mabc<<endl;
+	//cout<<MabcT<<endl;
+	//step2: rotate v1 around y-axis to z-axis
+	float fprj_v_xzp[3]={MabcT(0,0),0,MabcT(0,2)};
+	CalcRotMatr1(fglozaxis,fprj_v_xzp,"xz",Mrx2);
+	MabcT=MabcT*Mrx2;
+	
+	//cout<<Mabc<<endl;
+	//cout<<MabcT<<endl;
+
+	
+	//cout<<MabcT<<endl;
+	//find the center point 3D
+	int ncentid=0;
+	int n=vPathPointsWorld.size();
+	for(int i=0;i<n;i++)
+	{
+		if(MfirPont(0,0)==vPathPointsWorld[i].x&&MfirPont(0,1)==vPathPointsWorld[i].y&&MfirPont(0,2)==vPathPointsWorld[i].z)
+			ncentid=i;
+	}
+	//rotate the points in the vector
+	if(!vPathRotedPointsLocWorld.empty())vPathRotedPointsLocWorld.clear();
+
+	for(int i=0;i<vPathPointsWorld.size();i++)
+	{
+		MatrixXf MoriPont(1,3),MnewPont(1,3);
+		MoriPont<<vPathPointsWorld[i].x,vPathPointsWorld[i].y,vPathPointsWorld[i].z;
+		MnewPont=(MoriPont-MfirPont)*Mrx1*Mrx2;
+		PointCLTypeDef PnewPont;
+		PnewPont.x=MnewPont(0,0);
+		PnewPont.y=MnewPont(0,1);
+		PnewPont.z=MnewPont(0,2);
+		PnewPont.vLnum.push_back(vPathPointsWorld[i].vLnum[0]);
 		vPathRotedPointsLocWorld.push_back(PnewPont);
 		//cout<<MnewPont<<endl;
 	}
@@ -1906,6 +2247,98 @@ bool LocalRegLine2(Matrix<float,1,2> &MfirPont,float H,vector<PointCordTypeDef> 
 	//}
 	 return true;
  }
+ bool RotLocaRegreLineForRo_CL(int i,float fabc[3],vector<PointCLTypeDef> &Pro_ForRovLocalPointsInBallWorld,vector<PointCLTypeDef> &Pro_ForRovRotaLocalPointsInBallWorld)
+ {
+	 //angle between the regression line and the positive x axis
+	 //a+bx+cy=0
+	 //rotate the regression line to the positive x axis
+
+	 //cout the number of 0 values
+	 int nXNUM=3;
+	 for (int i=0;i<3;i++)
+	 {
+		 if (fabs(fabc[i])==0)nXNUM--;
+	 }	
+	 float fdrl[2]={0,0};
+	if (nXNUM==1)
+	{
+		if (fabs(fabc[0])!=0)
+		{
+		cout<<" Wrong regression line;"<<endl;
+			return false;
+		}
+		if (fabs(fabc[1])!=0)
+		{
+			fdrl[0]=0;
+			fdrl[1]=1;
+		}
+		if (fabs(fabc[2])!=0)
+		{
+			fdrl[0]=1;
+			fdrl[1]=0;
+		}
+	}
+	else 
+	{
+		if(fabs(fabc[2])==0)
+		{
+			fdrl[0]=0;
+			fdrl[1]=1;
+		}
+		if(fabs(fabc[2])!=0)
+		{
+			fdrl[0]=1;
+			fdrl[1]=-fabc[1]/fabc[2];
+		}
+	}
+	 float fxp[2]={1,0};
+	 float fcostheta=zxh::VectorOP_Cosine(fdrl,fxp,2);
+	 float fsintheta=sqrt(1-fcostheta*fcostheta);
+	  Matrix<float,2,2> Mrxp,Mrxp_inv;
+	  Mrxp<<fcostheta,fsintheta,
+		  -fsintheta,fcostheta;
+	  if (fdrl[1]>0)
+	  {
+		  Mrxp_inv=Mrxp.inverse();
+		  Mrxp=Mrxp_inv;
+	  }
+	  //x1=x*Mrot
+	 //generate rotation matrix
+	  //and then rotate the regression line with 45бу
+	 Matrix<float,2,2> Mrot;
+	 float fnewcostheta=cos(M_PI/4);
+	 float fnewsintheta=sin(M_PI/4);
+	 Mrot<<fnewcostheta,fnewsintheta,
+		 -fnewsintheta,fnewcostheta;
+	
+	 if(!Pro_ForRovRotaLocalPointsInBallWorld.empty())Pro_ForRovRotaLocalPointsInBallWorld.clear();
+	 //vector<PointCordTypeDef>Pro_v2D_x;
+	for(int i=0;i<Pro_ForRovLocalPointsInBallWorld.size();i++)
+	{
+	    MatrixXf MoriPont(1,2),MnewPont(1,2);//MnewPontx(1,2);
+		MoriPont<<Pro_ForRovLocalPointsInBallWorld[i].x,Pro_ForRovLocalPointsInBallWorld[i].y;
+		MnewPont=(MoriPont)*Mrxp*Mrot;
+		PointCLTypeDef PnewPont;
+		PnewPont.x=MnewPont(0,0);
+		PnewPont.y=MnewPont(0,1);
+		PnewPont.vLnum.push_back(Pro_ForRovLocalPointsInBallWorld[i].vLnum[0]);
+		Pro_ForRovRotaLocalPointsInBallWorld.push_back(PnewPont);
+		//
+	/*	MnewPontx=(MoriPont)*Mrxp;
+		PointCordTypeDef PnewPontx;
+		PnewPontx.x=MnewPontx(0,0);
+		PnewPontx.y=MnewPontx(0,1);
+		Pro_v2D_x.push_back(PnewPontx);*/
+	}
+
+	//Pro_Localx_Points_2D.txt contains the projected points after plane fitting
+	//char *Pro_Localx_Points_2D="F:/Coronary_0/code/Resutsfusion/Pro_Localx_Points_2D.txt";
+	//if(i==320)
+	//{
+	//	WriteCA2Txt(Pro_v2D_x,Pro_Localx_Points_2D);
+	//}
+	 return true;
+ }
   bool RotLocaRegreLineForQu1(int i,float fabc[3],vector<PointCordTypeDef> &Pro_ForRovLocalPointsInBallWorld,Matrix<float,2,2> &Mrot,vector<PointCordTypeDef> &Pro_ForRovRotaLocalPointsInBallWorld)
  {
 	 //angle between the regression line and the positive x axis
@@ -1995,6 +2428,95 @@ bool LocalRegLine2(Matrix<float,1,2> &MfirPont,float H,vector<PointCordTypeDef> 
 	//}
 	 return true;
  }
+  bool RotLocaRegreLineForQu1_CL(int i,float fabc[3],vector<PointCLTypeDef> &Pro_ForRovLocalPointsInBallWorld,Matrix<float,2,2> &Mrot,vector<PointCLTypeDef> &Pro_ForRovRotaLocalPointsInBallWorld)
+ {
+	 //angle between the regression line and the positive x axis
+	 //a+bx+cy=0
+	 //rotate the regression line to the positive x axis
+
+	 //cout the number of 0 values
+	 int nXNUM=3;
+	 for (int i=0;i<3;i++)
+	 {
+		 if (fabs(fabc[i])==0)nXNUM--;
+	 }	
+	 float fdrl[2]={0,0};
+	if (nXNUM==1)
+	{
+		if (fabs(fabc[0])!=0)
+		{
+		cout<<" Wrong regression line;"<<endl;
+			return false;
+		}
+		if (fabs(fabc[1])!=0)
+		{
+			fdrl[0]=0;
+			fdrl[1]=1;
+		}
+		if (fabs(fabc[2])!=0)
+		{
+			fdrl[0]=1;
+			fdrl[1]=0;
+		}
+	}
+	else 
+	{
+		if(fabs(fabc[2])==0)
+		{
+			fdrl[0]=0;
+			fdrl[1]=1;
+		}
+		if(fabs(fabc[2])!=0)
+		{
+			fdrl[0]=1;
+			fdrl[1]=-fabc[1]/fabc[2];
+		}
+	}
+	 float fxp[2]={1,0};
+	 float fcostheta=zxh::VectorOP_Cosine(fdrl,fxp,2);
+	 float fsintheta=sqrt(1-fcostheta*fcostheta);
+	  Matrix<float,2,2> Mrxp,Mrxp_inv;
+	  Mrxp<<fcostheta,fsintheta,
+		  -fsintheta,fcostheta;
+		 
+	  if (fdrl[1]>0)
+	  {
+		  Mrxp_inv=Mrxp.inverse();
+		  Mrxp=Mrxp_inv;
+	  } 
+	  Mrot=Mrxp;
+	  //x1=x*Mrot
+	 //generate rotation matrix
+	  //and then rotate the regression line with 45бу
+	
+	
+	 if(!Pro_ForRovRotaLocalPointsInBallWorld.empty())Pro_ForRovRotaLocalPointsInBallWorld.clear();
+	 //vector<PointCordTypeDef>Pro_v2D_x;
+	for(int i=0;i<Pro_ForRovLocalPointsInBallWorld.size();i++)
+	{
+	    MatrixXf MoriPont(1,2),MnewPont(1,2);//MnewPontx(1,2);
+		MoriPont<<Pro_ForRovLocalPointsInBallWorld[i].x,Pro_ForRovLocalPointsInBallWorld[i].y;
+		MnewPont=(MoriPont)*Mrxp;
+		PointCLTypeDef PnewPont;
+		PnewPont.x=MnewPont(0,0);
+		PnewPont.y=MnewPont(0,1);
+		Pro_ForRovRotaLocalPointsInBallWorld.push_back(PnewPont);
+		//
+	/*	MnewPontx=(MoriPont)*Mrxp;
+		PointCordTypeDef PnewPontx;
+		PnewPontx.x=MnewPontx(0,0);
+		PnewPontx.y=MnewPontx(0,1);
+		Pro_v2D_x.push_back(PnewPontx);*/
+	}
+
+	//Pro_Localx_Points_2D.txt contains the projected points after plane fitting
+	//char *Pro_Localx_Points_2D="F:/Coronary_0/code/Resutsfusion/Pro_Localx_Points_2D.txt";
+	//if(i==320)
+	//{
+	//	WriteCA2Txt(Pro_v2D_x,Pro_Localx_Points_2D);
+	//}
+	 return true;
+ }
  bool RotLocaRegreLineForQu(float fabc[3],vector<PointCordTypeDef> &Pro_ForRovLocalPointsInBallWorld,Matrix<float,2,2> &Mrot,vector<PointCordTypeDef> &Pro_ForRovRotaLocalPointsInBallWorld)
  {
 	 //angle between the regression line and the positive x axis
@@ -2063,7 +2585,82 @@ float CalcRp(vector<PointCordTypeDef> &vPathRotedPointsWorld)
 	 float feff=fcov_xy/(sqrt(fdelta_x2)*sqrt(fdelta_y2));
 	 return feff;
 }
+float CalcRp_CL(vector<PointCLTypeDef> &vPathRotedPointsWorld)
+{
+	//ro=cov(X, Y)/delta_x*deta_y;
+	float fsumx=0;
+	float fsumy=0;
+	float fcov_xy=0;
+	float fdelta_x2=0;
+	float fdelta_y2=0;
+    for(int i=0;i<vPathRotedPointsWorld.size();i++)
+	{
+		fsumx=fsumx+vPathRotedPointsWorld[i].x;
+		fsumy=fsumy+vPathRotedPointsWorld[i].y;
+	}
+	float fmeanx=fsumx/vPathRotedPointsWorld.size();
+	float fmeany=fsumy/vPathRotedPointsWorld.size();
+	 for(int i=0;i<vPathRotedPointsWorld.size();i++)
+	{
+		fcov_xy=fcov_xy+(vPathRotedPointsWorld[i].x-fmeanx)*(vPathRotedPointsWorld[i].y-fmeany);
+		fdelta_x2=fdelta_x2+(vPathRotedPointsWorld[i].x-fmeanx)*(vPathRotedPointsWorld[i].x-fmeanx);
+		fdelta_y2=fdelta_y2+(vPathRotedPointsWorld[i].y-fmeany)*(vPathRotedPointsWorld[i].y-fmeany);
+	}
+	 float feff=fcov_xy/(sqrt(fdelta_x2)*sqrt(fdelta_y2));
+	 return feff;
+}
 bool CalcCoeMMatrix(Matrix<float,1,2> &MfirPont,float H,vector<PointCordTypeDef> &vPathRotedPointsWorld,Matrix<float,3,3> &Mcoe,Matrix<float,3,1> &Mb)
+{
+	//y=a+bx+cx^2;
+		int m=vPathRotedPointsWorld.size();
+	Array<float, 1, 1000> Ax,Ay,Aw;
+		//initialization
+	for(int i=0;i<1000;i++)
+	{
+		Ax(0,i)=0;
+		Ay(0,i)=0;	
+		Aw(0,i)=0;	
+	}
+	//tranform the point position to matrix
+		float fmfirsy[2]={MfirPont(0,0),MfirPont(0,1)};
+	for(int i=0;i<m;i++)
+	{
+		Ax(0,i)=vPathRotedPointsWorld[i].x;
+		Ay(0,i)=vPathRotedPointsWorld[i].y;	
+		//calculate the weight
+		//w_i=(2*r^3/H^3-3*r^2/H^2+1)
+		float fmxy[2]={vPathRotedPointsWorld[i].x,vPathRotedPointsWorld[i].y};
+		float fr2=(zxh::VectorOP_Distance(fmfirsy,fmxy,2))*(zxh::VectorOP_Distance(fmfirsy,fmxy,2));
+		//w_i=(2*r^3/H^3-3*r^2/H^2+1)
+		float fwi=2*pow(fr2,3)/pow(H,3)-3*pow(fr2,2)/pow(H,2)+1;
+		//w_i=exp(-pow(r,2)/pow(H,2))
+		//float fwi=exp(-pow(fr2,2)/pow(H,2));
+		Aw(0,i)=fwi;
+
+	}
+	//Mcoe*x=Mb
+	//generate Mcoe matrx
+	Mcoe(0,0)=Aw.sum();
+	Mcoe(1,1)=(Ax*Ax*Aw).sum();
+	Mcoe(2,2)=(Ax.square().square()*Aw).sum();
+
+	Mcoe(0,1)=(Ax*Aw).sum();
+	Mcoe(1,0)=(Ax*Aw).sum();
+
+	Mcoe(0,2)=(Ax.square()*Aw).sum();
+	Mcoe(2,0)=(Ax.square()*Aw).sum();
+
+	Mcoe(1,2)=(Ax.square()*Ax*Aw).sum();
+	Mcoe(2,1)=(Ax.square()*Ax*Aw).sum();
+	float fdet=Mcoe.determinant();
+	//generate Mb matrx
+	Mb(0,0)=(Ay*Aw).sum();
+	Mb(1,0)=(Ax*Ay*Aw).sum();
+	Mb(2,0)=((Ax.square())*Ay*Aw).sum();
+	return true;
+
+}
+bool CalcCoeMMatrix_CL(Matrix<float,1,2> &MfirPont,float H,vector<PointCLTypeDef> &vPathRotedPointsWorld,Matrix<float,3,3> &Mcoe,Matrix<float,3,1> &Mb)
 {
 	//y=a+bx+cx^2;
 		int m=vPathRotedPointsWorld.size();
@@ -2147,6 +2744,39 @@ float CurFit2D(Matrix<float,1,2> &MfirPont,float H,vector<PointCordTypeDef> &vPa
 		
 	return fabc[0];
 }
+float CurFit2D_CL(Matrix<float,1,2> &MfirPont,float H,vector<PointCLTypeDef> &vPathRotedPointsWorld,float fabc[3])
+{
+	//Mcoe*x=Mb
+	//y=a+bx+cx^2
+	Matrix<float,3,3> Mcoe,Mcoe_inv;
+	Matrix<float,3,1> Mb,Mabc;
+
+	CalcCoeMMatrix_CL(MfirPont,H,vPathRotedPointsWorld,Mcoe,Mb);
+	//gerate A_inverse
+	//Mcoe_inv=Mcoe.inverse();
+	//result of abc
+	//Mabc=Mcoe_inv*Mb;
+	Mabc = Mcoe.ldlt().solve(Mb);
+	fabc[0]=Mabc(0,0);
+	fabc[1]=Mabc(1,0);
+	fabc[2]=Mabc(2,0);
+		//Mean square deviation
+	float fmsd=0;
+	int n=vPathRotedPointsWorld.size();
+	for(int i=0;i<n;i++)
+	{
+		float fcurpont[3]={vPathRotedPointsWorld[i].x,vPathRotedPointsWorld[i].y,vPathRotedPointsWorld[i].z};	
+		float fdelta2=(abs(fabc[0]+fabc[1]*fcurpont[0]+fabc[2]*fcurpont[0]*fcurpont[0]-fcurpont[1]))*(abs(fabc[0]+fabc[1]*fcurpont[0]+fabc[2]*fcurpont[0]*fcurpont[0]-fcurpont[1]));
+		fmsd=fmsd+fdelta2;
+	}
+	if(fmsd>0.1)
+	{
+		int xx=0;
+	}
+	//the displacement of the first new point
+		
+	return fabc[0];
+}
 bool BackRptaPontsToGlo(float ffirstpointdist,Matrix<float,2,2> &Mrot,Matrix<float,3,3> &Mrx1,Matrix<float,3,3> &Mrx2,Matrix<float,1,3> &MfirPont,PointCordTypeDef &PNewfirPont)
 {
 	MatrixXf MFirNewPontLoca2D(1,2),MFirNewPontLoca(1,3),MFirNewPontGlo(1,3);
@@ -2168,7 +2798,27 @@ bool BackRptaPontsToGlo(float ffirstpointdist,Matrix<float,2,2> &Mrot,Matrix<flo
 	PNewfirPont.z=MFirNewPontGlo(0,2);
 	return true;
 }
+bool BackRptaPontsToGlo_CL(float ffirstpointdist,Matrix<float,2,2> &Mrot,Matrix<float,3,3> &Mrx1,Matrix<float,3,3> &Mrx2,Matrix<float,1,3> &MfirPont,PointCLTypeDef &PNewfirPont)
+{
+	MatrixXf MFirNewPontLoca2D(1,2),MFirNewPontLoca(1,3),MFirNewPontGlo(1,3);
+	MFirNewPontLoca2D<<0,ffirstpointdist;//2D plane;
+	Matrix<float,2,2> Mrot_inv=Mrot.inverse();
+	MFirNewPontLoca2D=MFirNewPontLoca2D*Mrot_inv;//2D plane
+	MFirNewPontLoca<<MFirNewPontLoca2D(0,0),MFirNewPontLoca2D(0,1),0;
 
+	MFirNewPontGlo=MFirNewPontLoca*(Mrx2.inverse());
+	//cout<<MFirNewPontGlo<<endl;
+	MFirNewPontGlo=MFirNewPontGlo*(Mrx1.inverse());
+	//cout<<MFirNewPontGlo<<endl;
+	MFirNewPontGlo=MFirNewPontGlo+MfirPont;
+	//cout<<MFirNewPontGlo<<endl;
+	//dist
+	float fdist=sqrt(((MFirNewPontGlo-MfirPont)*(MFirNewPontGlo-MfirPont).transpose())(0,0));
+	PNewfirPont.x=MFirNewPontGlo(0,0);
+	PNewfirPont.y=MFirNewPontGlo(0,1);
+	PNewfirPont.z=MFirNewPontGlo(0,2);
+	return true;
+}
 double vectordoubleSum(vector<double>::iterator first,vector<double>::size_type size)
 {
     double sum=0.0;
@@ -3115,7 +3765,226 @@ bool PlaneFitting3(PointCordTypeDef &PfirPont,float H,vector<PointCordTypeDef> &
 
 	return true;
 }
+bool PlaneFitting3_CL(PointCLTypeDef &PfirPont,float H,vector<PointCLTypeDef> &vPathPointsWorld,float fabc[4])
+{
+
+	//a*x+b*y+c*z+d=0;
+	int n=vPathPointsWorld.size();
+	Array<double, 1, 1000>Mx,My,Mz,Mw;
+	//initialization
+	for(int i=0;i<1000;i++)
+	{
+		Mx(0,i)=0;
+		My(0,i)=0;	
+		Mz(0,i)=0;	
+		Mw(0,i)=0;	
+	}
+	//tranform the point position to matrix
+	float fmfirsyz[3]={PfirPont.x,PfirPont.y,PfirPont.z};
+	for(int i=0;i<n;i++)
+	{
+		Mx(0,i)=vPathPointsWorld[i].x;
+		My(0,i)=vPathPointsWorld[i].y;	
+		Mz(0,i)=vPathPointsWorld[i].z;	
+		//calculate the weight
+		//w_i=(2*r^3/H^3-3*r^2/H^2+1)
+		float fmxyz[3]={vPathPointsWorld[i].x,vPathPointsWorld[i].y,vPathPointsWorld[i].z};
+		float fr2=(zxh::VectorOP_Distance(fmfirsyz,fmxyz,3))*(zxh::VectorOP_Distance(fmfirsyz,fmxyz,3));
+		//w_i=(2*r^3/H^3-3*r^2/H^2+1)
+		//float fwi=2*pow(fr2,3)/pow(H,3)-3*pow(fr2,2)/pow(H,2)+1;
+		//w_i=exp(-pow(r,2)/pow(H,2))
+		float fwi=exp(-pow(fr2,2)/pow(H,2));
+		Mw(0,i)=1;
+	}
+	Matrix4f MA,MA_copy,MA_inv;
+	//Ax=b
+	//generate A matrx
+	MA(0,0)=(Mw*Mx*Mx).sum();
+	MA(1,1)=(Mw*My*My).sum();
+	MA(2,2)=(Mw*Mz*Mz).sum();
+	MA(3,3)=Mw.sum();
+
+	MA(0,1)=(Mw*Mx*My).sum();
+	MA(1,0)=(Mw*Mx*My).sum();
+
+	MA(0,2)=(Mw*Mx*Mz).sum();
+	MA(2,0)=(Mw*Mx*Mz).sum();
+
+	MA(0,3)=(Mw*Mx).sum();
+	MA(3,0)=(Mw*Mx).sum();
+
+	MA(1,2)=(Mw*My*Mz).sum();
+	MA(2,1)=(Mw*My*Mz).sum();
+
+	MA(1,3)=(Mw*My).sum();
+	MA(3,1)=(Mw*My).sum();
+
+	MA(2,3)=(Mw*Mz).sum();
+	MA(3,2)=(Mw*Mz).sum();
+	MA_copy=MA;
+	//save to txt
+//	std::string fileName = "F:/Coronary_0/code/AboutMinimalPathForExtractArtery/coronary_extraction/package_arteryextraction/package_arteryextraction/ResFusion/MA.txt" ;
+//    std::ofstream outfile( fileName.c_str() ) ; // file name and the operation type. 
+//
+//int i, j ;
+//for( i=0; i<4; i++ ){
+//    for( j=0; j<4; j++ )
+//          outfile<<setiosflags(ios::fixed)<<setprecision(10)<<MA(i,j) << " " ;        
+//     outfile << std::endl ;       // 
+//}
+//outfile.close() ;
+///
+	//EigenSolver<Matrix4f> es(MA);
+	//cout << "The eigenvalues of A are:" << endl << es.eigenvalues() << endl;
+	float fmadet=MA.determinant();
+	FullPivLU<Matrix4f> lu_decomp(MA);
+	int nrank=lu_decomp.rank();
+	//b
+	Matrix<float,4,1>Mabc;
+	Mabc<<0,0,0,0;
+	int nxindex[4]={-1,-1,-1,-1};
+
+	//elementary transformation of matrices
+	
+		int nXnum=4;
+		ETrans4_rref(MA);
+		for(int i=0;i<4;i++)
+		{
+			float fxxx=fabsf(MA(i,i));
+			if(fabsf(MA(i,i))==0)
+			{
+				nxindex[i]=1;
+				nXnum--;
+			}
+
+		}
+		if(nXnum!=4)
+		{
+			//solve the remain x
+			int m=MA.rows();
+			int n=MA.cols();
+			int np=n-nXnum;
+			double *K;
+			K=new double[n*np];
+
+
+			vector<int> vp;
+			vector<int> vnp;
+			for(int i=0;i<n;i++)
+			{
+				int nc=nxindex[i];
+				if(nc<0)
+				{
+					vp.push_back(i);
+				}
+				else
+				{
+					vnp.push_back(i);
+				}
+			}
+			Solve_Eqs_Null(K,MA,n,nXnum,np,vp,vnp);
+			for(int i=0;i<n;i++)
+			{
+				float sumKj=0;
+				for(int j=0;j<np;j++)
+				{
+					sumKj=sumKj+K[np*i+j];
+				}
+				Mabc(i,0)=sumKj;
+			}
+			Matrix<float,4,1>xxx;
+					xxx<<0,0,0,0;
+					xxx=MA_copy*Mabc;
+					int xxxx=0;
+			fabc[0]=Mabc(0,0);
+			fabc[1]=Mabc(1,0);
+			fabc[2]=Mabc(2,0);
+			fabc[3]=Mabc(3,0);
+		}
+
+		else
+		{
+			//a*x+b*y+c*z+d=0;
+			PlaneFitting_CL(PfirPont,H,vPathPointsWorld,fabc);
+		}
+		//Mean square deviation
+		//a*x+b*y+c*z+d=0;
+		float fmsd=0;
+		float a=fabc[0];
+		float b=fabc[1];
+		float c=fabc[2];
+		float d=fabc[3];
+		for(int i=0;i<n;i++)
+		{
+			float fcurpont[3]={vPathPointsWorld[i].x,vPathPointsWorld[i].y,vPathPointsWorld[i].z};	
+			float f_dist_Curvefit=fabsf(fabc[0]*fcurpont[0]+fabc[1]*fcurpont[1]+fabc[2]*fcurpont[2]+fabc[3])/sqrt(fabc[0]*fabc[0]+fabc[1]*fabc[1]+fabc[2]*fabc[2]);
+			fmsd=fmsd+f_dist_Curvefit;
+		}
+		if(fmsd>0.1)
+		{
+			int xx=0;
+		}
+
+	return true;
+}
 bool LocalRegLine4(Matrix<float,1,2> &MfirPont,float H,vector<PointCordTypeDef> &Pro_RotedvLocalPointsInBallWorld,float fab[3])
+{
+	//a  + b x + cy = 0
+	//y=a+bx;
+	int n=Pro_RotedvLocalPointsInBallWorld.size();
+	Array<double, 1, 1000> Mx,My,Mw;
+	//initialization
+	for(int i=0;i<1000;i++)
+	{
+		Mx(0,i)=0;
+		My(0,i)=0;	
+		Mw(0,i)=0;
+	}
+	//tranform the point position to matrix
+	float fmfirsy[2]={MfirPont(0,0),MfirPont(0,1)};
+	for(int i=0;i<n;i++)
+	{
+		Mx(0,i)=Pro_RotedvLocalPointsInBallWorld[i].x;
+		My(0,i)=Pro_RotedvLocalPointsInBallWorld[i].y;	
+		//calculate the weight
+		//w_i=(2*r^3/H^3-3*r^2/H^2+1)
+		float fmxy[2]={Pro_RotedvLocalPointsInBallWorld[i].x,Pro_RotedvLocalPointsInBallWorld[i].y};
+		float fr2=(zxh::VectorOP_Distance(fmfirsy,fmxy,2))*(zxh::VectorOP_Distance(fmfirsy,fmxy,2));
+		float fwi=exp(-pow(fr2,2)/pow(H,2));
+		Mw(0,i)=fwi;
+	}
+	Matrix<double, 2, 2>MA,MA_inv;
+	Matrix<double, 2, 1>Mb;
+	Matrix<double, 2, 1>Mab;
+	
+	//Ax=b
+	//generate A matrx
+	MA(0,0)=Mw.sum();
+	MA(1,1)=((Mx.square())*Mw).sum();
+	
+	MA(1,0)=(Mx*Mw).sum();
+	MA(0,1)=(Mx*Mw).sum();
+	//generate Mb matrx
+	Mb(0,0)=(My*Mw).sum();
+	Mb(1,0)=(My*Mx*Mw).sum();
+	//det of Ma
+	//float fMA_det=MA.determinant();
+	//if (fMA_det==0)
+	//{
+	//test_pseudoinverse(MA,MA_inv);
+	//}
+	//result of abc
+	//Mab=MA_inv*Mb;
+	//Mab(0,0)=a/c
+	//Mab(1,0)=b/c
+
+	Mab = MA.ldlt().solve(Mb);
+	fab[0]=Mab(0,0);
+	fab[1]=Mab(1,0);
+	fab[2]=-1;
+	return true;
+}
+bool LocalRegLine4_CL(Matrix<float,1,2> &MfirPont,float H,vector<PointCLTypeDef> &Pro_RotedvLocalPointsInBallWorld,float fab[3])
 {
 	//a  + b x + cy = 0
 	//y=a+bx;
@@ -3475,6 +4344,135 @@ bool LocalRegLine5(Matrix<float,1,2> &MfirPont,float H,vector<PointCordTypeDef> 
 	}
 	return true;
 }
+bool LocalRegLine5_CL(Matrix<float,1,2> &MfirPont,float H,vector<PointCLTypeDef> &Pro_RotedvLocalPointsInBallWorld,float fabc[3])
+{
+	//a  + b x + cy = 0
+	int n=Pro_RotedvLocalPointsInBallWorld.size();
+	Array<double, 1, 1000> Mx,My,Mz,Mw;
+	//initialization
+	for(int i=0;i<1000;i++)
+	{
+		Mx(0,i)=0;
+		My(0,i)=0;	
+		Mw(0,i)=0;
+	}
+	//tranform the point position to matrix
+	float fmfirsy[2]={MfirPont(0,0),MfirPont(0,1)};
+	for(int i=0;i<n;i++)
+	{
+		Mx(0,i)=Pro_RotedvLocalPointsInBallWorld[i].x;
+		My(0,i)=Pro_RotedvLocalPointsInBallWorld[i].y;	
+		//calculate the weight
+		//w_i=(2*r^3/H^3-3*r^2/H^2+1)
+		float fmxy[2]={Pro_RotedvLocalPointsInBallWorld[i].x,Pro_RotedvLocalPointsInBallWorld[i].y};
+		float fr2=(zxh::VectorOP_Distance(fmfirsy,fmxy,2))*(zxh::VectorOP_Distance(fmfirsy,fmxy,2));
+		//w_i=(2*r^3/H^3-3*r^2/H^2+1)
+		//float fwi=2*pow(fr2,3)/pow(H,3)-3*pow(fr2,2)/pow(H,2)+1;
+		//w_i=exp(-pow(r,2)/pow(H,2))
+		float fwi=exp(-pow(fr2,2)/pow(H,2));
+		Mw(0,i)=fwi;
+	}
+	//coefficient matrix
+	Matrix3f MA,MA_copy;
+	MA(0,0)=Mw.sum();
+	MA(1,1)=(Mw*Mx*Mx).sum();
+	MA(2,2)=(Mw*My*My).sum();
+
+	MA(0,1)=(Mw*Mx).sum();
+	MA(0,2)=(Mw*My).sum();
+
+	MA(1,0)=(Mw*Mx).sum();
+	MA(1,2)=(Mw*Mx*My).sum();
+
+	MA(2,0)=(Mw*My).sum();
+	MA(2,1)=(Mw*My*Mx).sum();
+	MA_copy=MA;
+	float fdet=MA.determinant();
+	//b
+	Matrix<float,3,1>Mabc;
+	Mabc<<0,0,0;
+	int nxindex[3]={-1,-1,-1};
+
+	//elementary transformation of matrices
+
+	int nXnum=3;
+	ETrans3_rref(MA);
+	for(int i=0;i<3;i++)
+	{
+		float fxxx=fabsf(MA(i,i));
+		if(fabsf(MA(i,i))==0)
+		{
+			Mabc(i,0)=1;
+			nxindex[i]=1;
+			nXnum--;
+		}
+	}
+	if (nXnum==1&&nxindex[0]<0)
+	{
+		cout<<"Can not regress the line;"<<endl;
+			return false;
+	}
+	if(nXnum!=3)
+	{
+	//solve the remain x
+			int m=MA.rows();
+			int n=MA.cols();
+			int np=n-nXnum;
+			double *K;
+			K=new double[n*np];
+
+
+			vector<int> vp;
+			vector<int> vnp;
+			for(int i=0;i<n;i++)
+			{
+				int nc=nxindex[i];
+				if(nc<0)
+				{
+					vp.push_back(i);
+				}
+				else
+				{
+					vnp.push_back(i);
+				}
+			}
+			Solve_Eqs_Null3(K,MA,n,nXnum,np,vp,vnp);
+			for(int i=0;i<n;i++)
+			{
+				float sumKj=0;
+				for(int j=0;j<np;j++)
+				{
+					sumKj=sumKj+K[np*i+j];
+				}
+				Mabc(i,0)=sumKj;
+			}
+			Matrix<float,3,1>xxx;
+					xxx<<0,0,0;
+					xxx=MA_copy*Mabc;
+					int xxxx=0;
+			fabc[0]=Mabc(0,0);
+			fabc[1]=Mabc(1,0);
+			fabc[2]=Mabc(2,0);
+	}
+	else
+	{
+		LocalRegLine4_CL(MfirPont,H,Pro_RotedvLocalPointsInBallWorld,fabc);
+	}
+	//Mean square deviation
+	//a  + b x + cy = 0
+	float fmsd=0;
+	for(int i=0;i<n;i++)
+	{
+		float fcurpont[2]={Pro_RotedvLocalPointsInBallWorld[i].x,Pro_RotedvLocalPointsInBallWorld[i].y};	
+		float f_dist_Curvefit=fabsf(fabc[0]+fabc[1]*fcurpont[0]+fabc[2]*fcurpont[1])/sqrt(fabc[1]*fabc[1]+fabc[2]*fabc[2]);
+		fmsd=fmsd+f_dist_Curvefit;
+	}
+	if(fmsd>0.1)
+	{
+		int xx=0;
+	}
+	return true;
+}
 int FindPosi(PointCordTypeDef PCent,std::vector<jdq2017::point3D> &path)
 {
 	float fpxyz[3]={PCent.x,PCent.y,PCent.z};
@@ -3502,6 +4500,34 @@ int FindPosi(PointCordTypeDef PCent,std::vector<jdq2017::point3D> &path)
   
 }
 bool FindPosi_Y_ALL(PointCordTypeDef PCent,vector<vLinesDef> &vnLine,vector<pair<int,int>>&vLP)
+{
+	float fpxyz[3]={PCent.x,PCent.y,PCent.z};
+	float fmindist=100000;
+	int curIdx=0;
+	if(!vLP.empty())vLP.clear();
+	for(int i=0;i<vnLine.size();i++)
+	{
+		vLinesDef vLtmp;
+		vLtmp=vnLine[i];
+
+		for (int j=0;j<(vLtmp.vLine).size() ;j++)
+		{ 
+			std::vector<jdq2017::point3D> vPtmp;
+			vPtmp=vLtmp.vLine;
+			float fxyz[3]={vPtmp[j]._x,vPtmp[j]._y,vPtmp[j]._z};
+			if(fxyz[0]==fpxyz[0]&&fxyz[1]==fpxyz[1]&&fxyz[2]==fpxyz[2])
+			{
+				pair<int,int>pij;
+				pij=make_pair(i,j);
+				vLP.push_back(pij);
+				return true;
+			}
+		} 
+	}
+	return false;
+  
+}
+bool FindPosi_Y_ALL_CL(PointCLTypeDef PCent,vector<vLinesDef> &vnLine,vector<pair<int,int>>&vLP)
 {
 	float fpxyz[3]={PCent.x,PCent.y,PCent.z};
 	float fmindist=100000;
@@ -3637,6 +4663,57 @@ bool RotaPontsToLoca12_ALL(int k,vector<PointCordTypeDef> &vPathPointsWorld,floa
 		PnewPont.x=MnewPont(0,0);
 		PnewPont.y=MnewPont(0,1);
 		PnewPont.z=MnewPont(0,2);
+		vPathRotedPointsLocWorld.push_back(PnewPont);
+		//cout<<MnewPont<<endl;
+	}
+	
+
+	//cout<<MfifthPontT<<endl;
+
+	return true;
+}
+bool RotaPontsToLoca12_ALL_CL(int k,vector<PointCLTypeDef> &vPathPointsWorld,float fabc[3],Matrix<float,1,3> &MfirPont,vector<PointCLTypeDef> &vPathRotedPointsLocWorld,Matrix<float,3,3> &Mrx1,Matrix<float,3,3> &Mrx2,Matrix<float,3,3> &Mrx3)
+{
+	// the target of this function is to transform the vector v=(a, b,-1) to vt=(0, 0, 1)
+	//step1: rotate v around x-axis to xz plane as v1 ; the angle alpha=arccos<v_prj_to_yz, z>, where v_prj_to_yz is the projection of v to yz plane
+	// judge which quadrant
+	//a*x+b*y+c*z+d=0;
+	float fprj_v_yzp[3]={0,fabc[1],fabc[2]};
+	float fglozaxis[3]={0,0,1};
+	
+	CalcRotMatr1(fglozaxis,fprj_v_yzp,"yz",Mrx1);
+	//rotate around x axis
+	MatrixXf Mabc(1,3),MabcT(1,3),MabcTT(1,3);
+	Mabc<<fabc[0],fabc[1],fabc[2];
+	MabcT=Mabc*Mrx1;
+	//cout<<Mabc<<endl;
+	//cout<<MabcT<<endl;
+	//step2: rotate v1 around y-axis to z-axis
+	float fprj_v_xzp[3]={MabcT(0,0),0,MabcT(0,2)};
+	CalcRotMatr1(fglozaxis,fprj_v_xzp,"xz",Mrx2);
+	MabcT=MabcT*Mrx2;
+	////step3: rotate v1 around y-axis to z-axis
+	//cout<<MabcT<<endl;
+	float fcostheta3=cos(M_PI/2);
+	float fsintheta3=sin(M_PI/2);
+	Mrx3 << fcostheta3,0,-fsintheta3,  
+			0,1,0,  
+			fsintheta3,0,fcostheta3;
+	MabcTT=Mabc*Mrx1*Mrx2*Mrx3;
+
+	//rotate the points in the vector
+	if(!vPathRotedPointsLocWorld.empty())vPathRotedPointsLocWorld.clear();
+
+	for(int i=0;i<vPathPointsWorld.size();i++)
+	{
+		MatrixXf MoriPont(1,3),MnewPont(1,3);
+		MoriPont<<vPathPointsWorld[i].x,vPathPointsWorld[i].y,vPathPointsWorld[i].z;
+		MnewPont=(MoriPont-MfirPont)*Mrx1*Mrx2*Mrx3;
+		PointCLTypeDef PnewPont;
+		PnewPont.x=MnewPont(0,0);
+		PnewPont.y=MnewPont(0,1);
+		PnewPont.z=MnewPont(0,2);
+		PnewPont.vLnum.push_back(i);
 		vPathRotedPointsLocWorld.push_back(PnewPont);
 		//cout<<MnewPont<<endl;
 	}
@@ -3803,6 +4880,165 @@ bool Collet2_ALL(int k,float clSampling,PointCordTypeDef PCent,float H,vector<Po
 			MnewPont=MrotPont*Mrx3_inv*Mrx2_inv*Mrx1_inv+MPCent;
 			//MnewPont=(MoriPont-MPCent)*Mrx1*Mrx2*Mrx3;
 			PointCordTypeDef PnewPont;
+			PnewPont.x=MnewPont(0,0);
+			PnewPont.y=MnewPont(0,1);
+			PnewPont.z=MnewPont(0,2);
+			vLocalPointsInBallWorld.push_back(PnewPont);
+		}
+	}
+	if(vLocalPointsInBallWorld.size()<2)
+	{
+		return false;
+	}
+	return true;
+}
+bool Collet2_ALL_CL(int k,float clSampling,PointCLTypeDef PCent,float H,vector<PointCLTypeDef> &vUnorgaPointsWorld,float fRo,int nINUM,vector<vLinesDef> &vnLine,vector<PointCLTypeDef> &vLocalPointsInBallWorld)
+{
+	//find the number of PCent in all lines
+	vector<pair<int,int>>vLP;
+	FindPosi_Y_ALL_CL(PCent,vnLine,vLP);
+	float fv[3]={0,0,0};
+	for(int i=0;i<1;i++)
+	{
+		int nPNum=vLP[i].second;
+		int nLNUM=vLP[i].first;
+		   std::vector<jdq2017::point3D> ref;
+			ref=vnLine[nLNUM].vLine;
+		int nRefSiz=ref.size();
+		
+		
+		if (nPNum>=0&&nPNum<nRefSiz-1)//
+		{
+			int nPPNum=H/clSampling;
+			int nPNext=nPNum+nPPNum;
+			nPNext=zxh::minf(nRefSiz-1,nPNext);
+			
+			fv[0]=ref[nPNext]._x-ref[nPNum]._x;
+			fv[1]=ref[nPNext]._y-ref[nPNum]._y;
+			fv[2]=ref[nPNext]._z-ref[nPNum]._z;
+		}
+		if (nPNum==ref.size()-1)//generate a ellipsoid
+		{
+			int nPNext=ref.size()-1;
+			int nRefPNum=H/clSampling;
+			int nPNum=nPNext-nRefPNum;
+
+			fv[0]=ref[nPNext]._x-ref[nPNum]._x;
+			fv[1]=ref[nPNext]._y-ref[nPNum]._y;
+			fv[2]=ref[nPNext]._z-ref[nPNum]._z;
+		}
+	}
+		//rotate the fv vector to the x-positive
+	vector<PointCLTypeDef> RotedvPoints,vUnorgaPointsWorld_Elli;
+	vUnorgaPointsWorld_Elli.assign(vUnorgaPointsWorld.begin(),vUnorgaPointsWorld.end());
+	Matrix<float,3,3> Mrx1,Mrx2,Mrx3;
+	if(!RotedvPoints.empty())RotedvPoints.clear();
+	Matrix<float,1,3> MPCent;
+	MPCent<<PCent.x,PCent.y,PCent.z;
+	RotaPontsToLoca12_ALL_CL(k,vUnorgaPointsWorld_Elli,fv,MPCent,RotedvPoints,Mrx1,Mrx2,Mrx3);	
+	//Ellipe
+	float falph=H+0.1*nINUM;
+	falph=zxh::minf(falph,4*H);
+	float fd=zxh::minf(falph*(1-fRo*fRo),sqrt(4*H*H-4*H*0.1));
+	float fb=(4*H*H-fd*fd)/4/H;
+	float fa=2*H-fb;
+	//Within the Ellipe
+	for(int i=0;i<RotedvPoints.size();i++)
+	{
+		float fxyz[3]={RotedvPoints[i].x,RotedvPoints[i].y,RotedvPoints[i].z};
+		float fmxyz=(fxyz[0]*fxyz[0]/fa/fa)+(fxyz[1]*fxyz[1]+fxyz[2]*fxyz[2])/fb/fb;
+		if(fmxyz<=1)
+		{
+
+			Matrix<float,3,3> Mrx1_inv,Mrx2_inv,Mrx3_inv;
+			MatrixXf MrotPont(1,3),MnewPont(1,3);
+		    MrotPont<<RotedvPoints[i].x,RotedvPoints[i].y,RotedvPoints[i].z;
+			Mrx1_inv=Mrx1.inverse();
+			Mrx2_inv=Mrx2.inverse();
+			Mrx3_inv=Mrx3.inverse();
+			MnewPont=MrotPont*Mrx3_inv*Mrx2_inv*Mrx1_inv+MPCent;
+			//MnewPont=(MoriPont-MPCent)*Mrx1*Mrx2*Mrx3;
+			PointCLTypeDef PnewPont;
+			PnewPont.x=MnewPont(0,0);
+			PnewPont.y=MnewPont(0,1);
+			PnewPont.z=MnewPont(0,2);
+			PnewPont.vLnum.push_back(RotedvPoints[i].vLnum[0]);
+			vLocalPointsInBallWorld.push_back(PnewPont);
+		}
+	}
+	if(vLocalPointsInBallWorld.size()<2)
+	{
+		return false;
+	}
+	return true;
+}
+bool Collet2_ALL_LP(int k,float clSampling,PointCLTypeDef PCent,float H,vector<PointCLTypeDef> &vUnorgaPointsWorld,float fRo,int nINUM,vector<vLinesDef> &vnLine,vector<PointCLTypeDef> &vLocalPointsInBallWorld)
+{
+	//find the number of PCent in all lines
+	vector<pair<int,int>>vLP;
+	FindPosi_Y_ALL_CL(PCent,vnLine,vLP);
+	float fv[3]={0,0,0};
+	for(int i=vLP.size()-1;i>vLP.size()-1;i--)
+	{
+		int nPNum=vLP[i].second;
+		int nLNUM=vLP[i].first;
+		   std::vector<jdq2017::point3D> ref;
+			ref=vnLine[nLNUM].vLine;
+		int nRefSiz=ref.size();
+		
+		
+		if (nPNum>=0&&nPNum<nRefSiz-1)//
+		{
+			int nPPNum=H/clSampling;
+			int nPNext=nPNum+nPPNum;
+			nPNext=zxh::minf(nRefSiz-1,nPNext);
+			
+			fv[0]=ref[nPNext]._x-ref[nPNum]._x;
+			fv[1]=ref[nPNext]._y-ref[nPNum]._y;
+			fv[2]=ref[nPNext]._z-ref[nPNum]._z;
+		}
+		if (nPNum==ref.size()-1)//generate a ellipsoid
+		{
+			int nPNext=ref.size()-1;
+			int nRefPNum=H/clSampling;
+			int nPNum=nPNext-nRefPNum;
+
+			fv[0]=ref[nPNext]._x-ref[nPNum]._x;
+			fv[1]=ref[nPNext]._y-ref[nPNum]._y;
+			fv[2]=ref[nPNext]._z-ref[nPNum]._z;
+		}
+	}
+		//rotate the fv vector to the x-positive
+	vector<PointCLTypeDef> RotedvPoints,vUnorgaPointsWorld_Elli;
+	vUnorgaPointsWorld_Elli.assign(vUnorgaPointsWorld.begin(),vUnorgaPointsWorld.end());
+	Matrix<float,3,3> Mrx1,Mrx2,Mrx3;
+	if(!RotedvPoints.empty())RotedvPoints.clear();
+	Matrix<float,1,3> MPCent;
+	MPCent<<PCent.x,PCent.y,PCent.z;
+	RotaPontsToLoca12_ALL_CL(k,vUnorgaPointsWorld_Elli,fv,MPCent,RotedvPoints,Mrx1,Mrx2,Mrx3);	
+	//Ellipe
+	float falph=H+0.1*nINUM;
+	falph=zxh::minf(falph,4*H);
+	float fd=zxh::minf(falph*(1-fRo*fRo),sqrt(4*H*H-4*H*0.1));
+	float fb=(4*H*H-fd*fd)/4/H;
+	float fa=2*H-fb;
+	//Within the Ellipe
+	for(int i=0;i<RotedvPoints.size();i++)
+	{
+		float fxyz[3]={RotedvPoints[i].x,RotedvPoints[i].y,RotedvPoints[i].z};
+		float fmxyz=(fxyz[0]*fxyz[0]/fa/fa)+(fxyz[1]*fxyz[1]+fxyz[2]*fxyz[2])/fb/fb;
+		if(fmxyz<=1)
+		{
+
+			Matrix<float,3,3> Mrx1_inv,Mrx2_inv,Mrx3_inv;
+			MatrixXf MrotPont(1,3),MnewPont(1,3);
+		    MrotPont<<RotedvPoints[i].x,RotedvPoints[i].y,RotedvPoints[i].z;
+			Mrx1_inv=Mrx1.inverse();
+			Mrx2_inv=Mrx2.inverse();
+			Mrx3_inv=Mrx3.inverse();
+			MnewPont=MrotPont*Mrx3_inv*Mrx2_inv*Mrx1_inv+MPCent;
+			//MnewPont=(MoriPont-MPCent)*Mrx1*Mrx2*Mrx3;
+			PointCLTypeDef PnewPont;
 			PnewPont.x=MnewPont(0,0);
 			PnewPont.y=MnewPont(0,1);
 			PnewPont.z=MnewPont(0,2);
@@ -4158,6 +5394,492 @@ bool AdEvePontsBySec_ALL(float clSampling,vector<PointCordTypeDef>&vUnorgaPoints
 			int x=0;
 			}
 
+		}
+	}
+	return true;
+}
+bool UpdatePosiOfvnLine(vector<PointCLTypeDef>&vUnorgaPointsWorld,vector<PointLPTypeDef>&vUnorgaPointsWorld_LP,vector<vLinesDef> &vnLine)
+{
+	for (int i=0;i<vUnorgaPointsWorld.size();i++)
+	{
+		PointCLTypeDef PNewfirPont;
+		PNewfirPont=vUnorgaPointsWorld[i];
+		PointLPTypeDef LPtmp;
+		LPtmp=vUnorgaPointsWorld_LP[i];
+		vector<pair<int,int>>vpLP;
+		vpLP=LPtmp.vLPnum;
+		for(int p=0;p<vpLP.size();p++)
+		{
+			int nL=vpLP[p].first;
+			int nP=vpLP[p].second;
+			for(int l=0;l<vnLine.size();l++)
+			{ 
+				if(vnLine[l].nLine==nL)
+				{
+					vnLine[l].vLine[nP]._x=PNewfirPont.x;
+					vnLine[l].vLine[nP]._y=PNewfirPont.y;
+					vnLine[l].vLine[nP]._z=PNewfirPont.z;
+				}
+			}
+		}
+	}
+	return true;
+}
+bool AdEvePontsBySec_ALL_LP(float clSampling,vector<PointCLTypeDef>&vUnorgaPointsWorld,vector<PointLPTypeDef>&vUnorgaPointsWorld_LP,vector<vLinesDef> &vnLine,vector<vector<PointCLTypeDef>> &vvpoints)
+{
+	for(int n=0;n<2;n++)
+	{
+		//set every point in vPathPointsWorld as the origin
+		float fro=1;	
+		float H=3*clSampling;
+		int i=0;
+		//intialiation with a start point and start direction
+
+
+		bool bRoM1=false;
+		int nINUM=0;
+
+
+		while (i<vUnorgaPointsWorld.size())
+		{
+			if(i==972||i==988||i==989)
+			{
+				int xx=0;
+			}
+			//collet points from vUnorgaPointsWorld within a ball of radius H
+			vector<PointCLTypeDef> vLocalPointsInBallWorld,vLocalPointsInBallWorld_ori;
+			PointCLTypeDef PCent=vUnorgaPointsWorld[i];
+			if(bRoM1)
+			{
+				Collet2_ALL_CL(i,clSampling,PCent,H,vUnorgaPointsWorld,fro,nINUM,vnLine,vLocalPointsInBallWorld);
+			}
+			else
+			{
+				Collet1_CL(PCent,H,vUnorgaPointsWorld,vLocalPointsInBallWorld);
+			}
+			vLocalPointsInBallWorld_ori.assign(vLocalPointsInBallWorld.begin(),vLocalPointsInBallWorld.end());
+			StorUnique_CL(vLocalPointsInBallWorld);	
+			//fit a plane
+			float fabc[4]={0,0,0,0};
+			//			//z=a*x+b*y+c;
+			PlaneFitting3_CL(PCent,H,vLocalPointsInBallWorld,fabc);
+			//PlaneFitting(vLocalPointsInBallWorld,fabc);
+			//project the points to the plane; points are 3D
+			vector<PointCLTypeDef> Pro_vLocalPointsInBallWorld;
+			Matrix<float,1,3> MPro_Pcent;//3D
+			ProjPontsToPlaen_CL(vLocalPointsInBallWorld,fabc,PCent,MPro_Pcent,Pro_vLocalPointsInBallWorld);
+			vector<PointCLTypeDef> Pro_vLocalPointsInBallWorld_ori;
+			Pro_vLocalPointsInBallWorld_ori.assign(Pro_vLocalPointsInBallWorld.begin(),Pro_vLocalPointsInBallWorld.end());
+			//transform the points to local axis as 2D points
+			vector<PointCLTypeDef>Pro_RotedvLocalPointsInBallWorld;
+			Matrix<float,3,3> Mrx1,Mrx2;
+			if(!Pro_RotedvLocalPointsInBallWorld.empty())Pro_RotedvLocalPointsInBallWorld.clear();
+			Matrix<float,1,2> MPro_Pcent_2D;//2D on  the plane
+			RotaPontsToLoca1_CL(Pro_vLocalPointsInBallWorld,fabc,MPro_Pcent,MPro_Pcent_2D,Pro_RotedvLocalPointsInBallWorld,Mrx1,Mrx2);	
+			//Pro_RotedvLocalPointsInBallWorld are the 2D points set
+			float fab[3]={0,0,0};
+			//linear regression
+			//if det|A|=0,false;
+			//bool bxyisnot0=LocalRegLine1(MPro_Pcent_2D,H,Pro_RotedvLocalPointsInBallWorld);
+			//LocalRegLine_Gener(MfirPont_Local,H,Pro_RotedvLocalPointsInBallWorld,fab);
+			//LocalRegLine1(MPro_Pcent_2D,H,Pro_RotedvLocalPointsInBallWorld);
+			LocalRegLine5_CL(MPro_Pcent_2D,H,Pro_RotedvLocalPointsInBallWorld,fab);
+			vector<PointCLTypeDef> Pro_ForRovRotaLocalPointsInBallWorld;
+			//rotate the local regression line with pi/4-theta
+
+			float fxx=1.5;
+			float fs=fxx/50;
+			vector<PointCLTypeDef> vPonfxy;
+			for (int kx=-50;kx<=50;kx++)
+			{
+				float fx=kx*fs;
+				float fy=-(fab[0]+fab[1]*fx)/(fab[2]+0.00001);
+				PointCLTypeDef ptem;
+				ptem.x=fx;
+				ptem.y=fy;
+				vPonfxy.push_back(ptem);
+			}
+
+			RotLocaRegreLineForRo_CL(i,fab,Pro_RotedvLocalPointsInBallWorld,Pro_ForRovRotaLocalPointsInBallWorld);
+			//calculate the correlation coefficient
+			fro=CalcRp_CL(Pro_ForRovRotaLocalPointsInBallWorld);
+
+			//2D curve fitting
+			//y=ax2+bx+c
+			if (fabs(fro)>0.7)
+			{
+				float fabc[3]={0,0,0};
+				Matrix<float,2,2> Mrot;
+				vector<PointCLTypeDef> Pro_ForQuvRotaLocalPointsInBallWorld;
+				RotLocaRegreLineForQu1_CL(i,fab,Pro_RotedvLocalPointsInBallWorld,Mrot,Pro_ForQuvRotaLocalPointsInBallWorld);
+				//calculate the displcement between the new first point (new_x,new_y, new_z)and the originial point (0,0,0)
+				float ffirstpointdist=CurFit2D_CL(MPro_Pcent_2D,H,Pro_ForQuvRotaLocalPointsInBallWorld,fabc);
+				//transform the local origin point to the global axis
+				PointCLTypeDef PNewfirPont;//3D
+
+				BackRptaPontsToGlo_CL(ffirstpointdist,Mrot,Mrx1,Mrx2,MPro_Pcent,PNewfirPont);
+				//update the point sets
+				PNewfirPont.vLnum=PCent.vLnum;
+				vUnorgaPointsWorld[i]=PNewfirPont;
+				i++;
+				H=6*clSampling;
+				nINUM=0;
+				bRoM1=false;
+			}
+			else
+			{	//Points_3D.txt contains the points before plane fitting
+				//char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D.txt";
+				//WriteCA2Txt(vLocalPointsInBallWorld,Points_3D_Filename);
+				////Pro_Points_3D.txt contains the projected points after plane fitting
+				/*char *Pro_Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Pro_Points_3D.txt";
+				WriteCA2Txt(Pro_RotedvLocalPointsInBallWorld,Pro_Points_3D_Filename);*/
+				//Pro_Local_Points_2D.txt contains the projected points after plane fitting
+				//char *Pro_Local_Points_2D="F:/Coronary_0/code/Resutsfusion/Pro_Local_Points_2D.txt";
+				//WriteCA2Txt(Pro_RotedvLocalPointsInBallWorld,Pro_Local_Points_2D);
+				//Points_2D.txt contains the points for calculate fro
+				//char *Points_2D_Filename="F:/Coronary_0/code/Resutsfusion/Points_2D.txt";
+				//WriteCA2Txt(Pro_ForRovRotaLocalPointsInBallWorld,Points_2D_Filename);
+				//Determine if it is a bifurcation
+
+				//float fcos=DeterIfBranPont1(PCent,ref,cl);
+				//if(fcos<0.6)//it is a bifurcation point
+				bRoM1=true;
+				nINUM++;
+
+				/*if(i==972||i==988||i==989)
+				{
+				char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_Local.txt";
+				WriteCA2Txt_CL(vLocalPointsInBallWorld,Points_3D_Filename);
+				char *Points_2D_Filename="F:/Coronary_0/code/Resutsfusion/Points_2D.txt";
+				WriteCA2Txt_CL(Pro_ForRovRotaLocalPointsInBallWorld,Points_2D_Filename);
+				char *Bef_Points_2D_Filename="F:/Coronary_0/code/Resutsfusion/Bef_Points_2D.txt";
+				WriteCA2Txt_CL(Pro_RotedvLocalPointsInBallWorld,Bef_Points_2D_Filename);
+				char *Reg_Points_2D_Filename="F:/Coronary_0/code/Resutsfusion/Reg_Points_2D.txt";
+				WriteCA2Txt_CL(vPonfxy,Reg_Points_2D_Filename);
+				int x=0;
+				}*/
+
+			}
+		}
+		vvpoints.push_back(vUnorgaPointsWorld);
+		//update the position of the vnLine
+		UpdatePosiOfvnLine(vUnorgaPointsWorld,vUnorgaPointsWorld_LP,vnLine);
+	}
+	return true;
+}
+bool ChangeWithAnothPont(vector<PointCLTypeDef>&Pro_ForRovRotaLocalPointsInBallWorld,vector<PointCLTypeDef>&vUnorgaPointsWorld,vector<PointCLTypeDef>&vPontsmark,vector<PointCLTypeDef>&vLocalPointsInBallWorld_ori)
+{
+	for (int i=0;i<vLocalPointsInBallWorld_ori.size();i++)
+	{
+		int m=vLocalPointsInBallWorld_ori[i].vLnum[0];
+		int n=vPontsmark[m].vLnum[0];
+		if(n==-1)
+		{
+			vUnorgaPointsWorld[i].x=vLocalPointsInBallWorld_ori[m].x;
+			vUnorgaPointsWorld[i].y=vLocalPointsInBallWorld_ori[m].y;
+			vUnorgaPointsWorld[i].z=vLocalPointsInBallWorld_ori[m].z;
+			vUnorgaPointsWorld[i].vLnum.push_back(vLocalPointsInBallWorld_ori[m].vLnum[0]);
+		}
+	}
+	return true;
+}
+bool AdEvePontsBySec_ALL_LP1(float clSampling,vector<PointCLTypeDef>&vUnorgaPointsWorld,vector<PointLPTypeDef>&vUnorgaPointsWorld_LP,vector<vLinesDef> &vnLine,vector<vector<PointCLTypeDef>> &vvpoints)
+{
+	for(int n=0;n<2;n++)
+	{
+		//set every point in vPathPointsWorld as the origin
+		float fro=1;	
+		float H=3*clSampling;
+		int i=0;
+		//intialiation with a start point and start direction
+
+
+		bool bRoM1=false;
+		int nINUM=0;
+
+		vector<PointCLTypeDef> vPontsmark;
+		vPontsmark.assign(vUnorgaPointsWorld.begin(),vUnorgaPointsWorld.end());
+		for(int j=0;j<vPontsmark.size();j++)
+		{
+			vPontsmark[j].vLnum[0]=-1;
+		}
+		while (i<vUnorgaPointsWorld.size())
+		{
+			if(i==972||i==988||i==989)
+			{
+				int xx=0;
+			}
+			//collet points from vUnorgaPointsWorld within a ball of radius H
+			vector<PointCLTypeDef> vLocalPointsInBallWorld,vLocalPointsInBallWorld_ori;
+			PointCLTypeDef PCent=vUnorgaPointsWorld[i];
+			if(bRoM1)
+			{
+				Collet2_ALL_CL(i,clSampling,PCent,H,vUnorgaPointsWorld,fro,nINUM,vnLine,vLocalPointsInBallWorld);
+			}
+			else
+			{
+				Collet1_CL(PCent,H,vUnorgaPointsWorld,vLocalPointsInBallWorld);
+				vLocalPointsInBallWorld_ori.assign(vLocalPointsInBallWorld.begin(),vLocalPointsInBallWorld.end());
+			}
+			
+			StorUnique_CL(vLocalPointsInBallWorld);	
+			//fit a plane
+			float fabc[4]={0,0,0,0};
+			//			//z=a*x+b*y+c;
+			PlaneFitting3_CL(PCent,H,vLocalPointsInBallWorld,fabc);
+			//PlaneFitting(vLocalPointsInBallWorld,fabc);
+			//project the points to the plane; points are 3D
+			vector<PointCLTypeDef> Pro_vLocalPointsInBallWorld;
+			Matrix<float,1,3> MPro_Pcent;//3D
+			ProjPontsToPlaen_CL(vLocalPointsInBallWorld,fabc,PCent,MPro_Pcent,Pro_vLocalPointsInBallWorld);
+			vector<PointCLTypeDef> Pro_vLocalPointsInBallWorld_ori;
+			Pro_vLocalPointsInBallWorld_ori.assign(Pro_vLocalPointsInBallWorld.begin(),Pro_vLocalPointsInBallWorld.end());
+			//transform the points to local axis as 2D points
+			vector<PointCLTypeDef>Pro_RotedvLocalPointsInBallWorld;
+			Matrix<float,3,3> Mrx1,Mrx2;
+			if(!Pro_RotedvLocalPointsInBallWorld.empty())Pro_RotedvLocalPointsInBallWorld.clear();
+			Matrix<float,1,2> MPro_Pcent_2D;//2D on  the plane
+			RotaPontsToLoca1_CL(Pro_vLocalPointsInBallWorld,fabc,MPro_Pcent,MPro_Pcent_2D,Pro_RotedvLocalPointsInBallWorld,Mrx1,Mrx2);	
+			//Pro_RotedvLocalPointsInBallWorld are the 2D points set
+			float fab[3]={0,0,0};
+			//linear regression
+			//if det|A|=0,false;
+			//bool bxyisnot0=LocalRegLine1(MPro_Pcent_2D,H,Pro_RotedvLocalPointsInBallWorld);
+			//LocalRegLine_Gener(MfirPont_Local,H,Pro_RotedvLocalPointsInBallWorld,fab);
+			//LocalRegLine1(MPro_Pcent_2D,H,Pro_RotedvLocalPointsInBallWorld);
+			LocalRegLine5_CL(MPro_Pcent_2D,H,Pro_RotedvLocalPointsInBallWorld,fab);
+			vector<PointCLTypeDef> Pro_ForRovRotaLocalPointsInBallWorld;
+			//rotate the local regression line with pi/4-theta
+
+			float fxx=1.5;
+			float fs=fxx/50;
+			vector<PointCLTypeDef> vPonfxy;
+			for (int kx=-50;kx<=50;kx++)
+			{
+				float fx=kx*fs;
+				float fy=-(fab[0]+fab[1]*fx)/(fab[2]+0.00001);
+				PointCLTypeDef ptem;
+				ptem.x=fx;
+				ptem.y=fy;
+				vPonfxy.push_back(ptem);
+			}
+
+			RotLocaRegreLineForRo_CL(i,fab,Pro_RotedvLocalPointsInBallWorld,Pro_ForRovRotaLocalPointsInBallWorld);
+			//calculate the correlation coefficient
+			fro=CalcRp_CL(Pro_ForRovRotaLocalPointsInBallWorld);
+
+			//2D curve fitting
+			//y=ax2+bx+c
+			if (fabs(fro)>0.7)
+			{
+				float fabc[3]={0,0,0};
+				Matrix<float,2,2> Mrot;
+				vector<PointCLTypeDef> Pro_ForQuvRotaLocalPointsInBallWorld;
+				RotLocaRegreLineForQu1_CL(i,fab,Pro_RotedvLocalPointsInBallWorld,Mrot,Pro_ForQuvRotaLocalPointsInBallWorld);
+				//calculate the displcement between the new first point (new_x,new_y, new_z)and the originial point (0,0,0)
+				float ffirstpointdist=CurFit2D_CL(MPro_Pcent_2D,H,Pro_ForQuvRotaLocalPointsInBallWorld,fabc);
+				//transform the local origin point to the global axis
+				PointCLTypeDef PNewfirPont;//3D
+
+				BackRptaPontsToGlo_CL(ffirstpointdist,Mrot,Mrx1,Mrx2,MPro_Pcent,PNewfirPont);
+				//update the point sets
+				PNewfirPont.vLnum=PCent.vLnum;
+				vUnorgaPointsWorld[i]=PNewfirPont;
+				vPontsmark[i].x=0;
+				i++;
+				H=6*clSampling;
+				nINUM=0;
+				bRoM1=false;
+			}
+			else
+			{	//Points_3D.txt contains the points before plane fitting
+				//char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D.txt";
+				//WriteCA2Txt(vLocalPointsInBallWorld,Points_3D_Filename);
+				////Pro_Points_3D.txt contains the projected points after plane fitting
+				/*char *Pro_Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Pro_Points_3D.txt";
+				WriteCA2Txt(Pro_RotedvLocalPointsInBallWorld,Pro_Points_3D_Filename);*/
+				//Pro_Local_Points_2D.txt contains the projected points after plane fitting
+				//char *Pro_Local_Points_2D="F:/Coronary_0/code/Resutsfusion/Pro_Local_Points_2D.txt";
+				//WriteCA2Txt(Pro_RotedvLocalPointsInBallWorld,Pro_Local_Points_2D);
+				//Points_2D.txt contains the points for calculate fro
+				//char *Points_2D_Filename="F:/Coronary_0/code/Resutsfusion/Points_2D.txt";
+				//WriteCA2Txt(Pro_ForRovRotaLocalPointsInBallWorld,Points_2D_Filename);
+				//Determine if it is a bifurcation
+
+				//float fcos=DeterIfBranPont1(PCent,ref,cl);
+				//if(fcos<0.6)//it is a bifurcation point
+				bRoM1=true;
+				nINUM++;
+				if(nINUM>600)
+				{
+					ChangeWithAnothPont(Pro_ForRovRotaLocalPointsInBallWorld,vUnorgaPointsWorld,vPontsmark,vLocalPointsInBallWorld_ori);
+				}
+				/*if(i==972||i==988||i==989)
+				{
+				char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_Local.txt";
+				WriteCA2Txt_CL(vLocalPointsInBallWorld,Points_3D_Filename);
+				char *Points_2D_Filename="F:/Coronary_0/code/Resutsfusion/Points_2D.txt";
+				WriteCA2Txt_CL(Pro_ForRovRotaLocalPointsInBallWorld,Points_2D_Filename);
+				char *Bef_Points_2D_Filename="F:/Coronary_0/code/Resutsfusion/Bef_Points_2D.txt";
+				WriteCA2Txt_CL(Pro_RotedvLocalPointsInBallWorld,Bef_Points_2D_Filename);
+				char *Reg_Points_2D_Filename="F:/Coronary_0/code/Resutsfusion/Reg_Points_2D.txt";
+				WriteCA2Txt_CL(vPonfxy,Reg_Points_2D_Filename);
+				int x=0;
+				}*/
+
+			}
+		}
+		vvpoints.push_back(vUnorgaPointsWorld);
+			char chTemp[25];
+		_itoa_s(vvpoints.size(), chTemp, 10);
+		char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new_";
+		int nLen1 = strlen(Points_3D_Filename) + strlen(chTemp) + strlen(".txt") + 1;
+		char *chFileName1 = (char *)malloc(nLen1);
+		strcpy(chFileName1, Points_3D_Filename);
+		strcat(chFileName1, chTemp);
+		strcat(chFileName1, ".txt");
+		WriteCA2Txt_CL(vvpoints[vvpoints.size()-1],Points_3D_Filename);
+		free(chFileName1);
+		//update the position of the vnLine
+		UpdatePosiOfvnLine(vUnorgaPointsWorld,vUnorgaPointsWorld_LP,vnLine);
+	}
+	return true;
+}
+bool AdEvePontsBySec_ALL_CL(float clSampling,vector<PointCLTypeDef>&vUnorgaPointsWorld,vector<vLinesDef> &vnLine)
+{
+	//set every point in vPathPointsWorld as the origin
+	float fro=1;	
+	float H=3*clSampling;
+	int i=0;
+	//intialiation with a start point and start direction
+
+
+	bool bRoM1=false;
+	int nINUM=0;
+	for(int n=0;i<2;i++)
+	{
+		while (i<vUnorgaPointsWorld.size())
+		{
+			if(i==972||i==988||i==989)
+			{
+				int xx=0;
+			}
+			//collet points from vUnorgaPointsWorld within a ball of radius H
+			vector<PointCLTypeDef> vLocalPointsInBallWorld,vLocalPointsInBallWorld_ori;
+			PointCLTypeDef PCent=vUnorgaPointsWorld[i];
+			if(bRoM1)
+			{
+				Collet2_ALL_CL(i,clSampling,PCent,H,vUnorgaPointsWorld,fro,nINUM,vnLine,vLocalPointsInBallWorld);
+			}
+			else
+			{
+				Collet1_CL(PCent,H,vUnorgaPointsWorld,vLocalPointsInBallWorld);
+			}
+			vLocalPointsInBallWorld_ori.assign(vLocalPointsInBallWorld.begin(),vLocalPointsInBallWorld.end());
+			StorUnique_CL(vLocalPointsInBallWorld);	
+			//fit a plane
+			float fabc[4]={0,0,0,0};
+			//			//z=a*x+b*y+c;
+			PlaneFitting3_CL(PCent,H,vLocalPointsInBallWorld,fabc);
+			//PlaneFitting(vLocalPointsInBallWorld,fabc);
+			//project the points to the plane; points are 3D
+			vector<PointCLTypeDef> Pro_vLocalPointsInBallWorld;
+			Matrix<float,1,3> MPro_Pcent;//3D
+			ProjPontsToPlaen_CL(vLocalPointsInBallWorld,fabc,PCent,MPro_Pcent,Pro_vLocalPointsInBallWorld);
+			vector<PointCLTypeDef> Pro_vLocalPointsInBallWorld_ori;
+			Pro_vLocalPointsInBallWorld_ori.assign(Pro_vLocalPointsInBallWorld.begin(),Pro_vLocalPointsInBallWorld.end());
+			//transform the points to local axis as 2D points
+			vector<PointCLTypeDef>Pro_RotedvLocalPointsInBallWorld;
+			Matrix<float,3,3> Mrx1,Mrx2;
+			if(!Pro_RotedvLocalPointsInBallWorld.empty())Pro_RotedvLocalPointsInBallWorld.clear();
+			Matrix<float,1,2> MPro_Pcent_2D;//2D on  the plane
+			RotaPontsToLoca1_CL(Pro_vLocalPointsInBallWorld,fabc,MPro_Pcent,MPro_Pcent_2D,Pro_RotedvLocalPointsInBallWorld,Mrx1,Mrx2);	
+			//Pro_RotedvLocalPointsInBallWorld are the 2D points set
+			float fab[3]={0,0,0};
+			//linear regression
+			//if det|A|=0,false;
+			//bool bxyisnot0=LocalRegLine1(MPro_Pcent_2D,H,Pro_RotedvLocalPointsInBallWorld);
+			//LocalRegLine_Gener(MfirPont_Local,H,Pro_RotedvLocalPointsInBallWorld,fab);
+			//LocalRegLine1(MPro_Pcent_2D,H,Pro_RotedvLocalPointsInBallWorld);
+			LocalRegLine5_CL(MPro_Pcent_2D,H,Pro_RotedvLocalPointsInBallWorld,fab);
+			vector<PointCLTypeDef> Pro_ForRovRotaLocalPointsInBallWorld;
+			//rotate the local regression line with pi/4-theta
+
+			float fxx=1.5;
+			float fs=fxx/50;
+			vector<PointCLTypeDef> vPonfxy;
+			for (int kx=-50;kx<=50;kx++)
+			{
+				float fx=kx*fs;
+				float fy=-(fab[0]+fab[1]*fx)/(fab[2]+0.00001);
+				PointCLTypeDef ptem;
+				ptem.x=fx;
+				ptem.y=fy;
+				vPonfxy.push_back(ptem);
+			}
+
+			RotLocaRegreLineForRo_CL(i,fab,Pro_RotedvLocalPointsInBallWorld,Pro_ForRovRotaLocalPointsInBallWorld);
+			//calculate the correlation coefficient
+			fro=CalcRp_CL(Pro_ForRovRotaLocalPointsInBallWorld);
+
+			//2D curve fitting
+			//y=ax2+bx+c
+			if (fabs(fro)>0.7)
+			{
+				float fabc[3]={0,0,0};
+				Matrix<float,2,2> Mrot;
+				vector<PointCLTypeDef> Pro_ForQuvRotaLocalPointsInBallWorld;
+				RotLocaRegreLineForQu1_CL(i,fab,Pro_RotedvLocalPointsInBallWorld,Mrot,Pro_ForQuvRotaLocalPointsInBallWorld);
+				//calculate the displcement between the new first point (new_x,new_y, new_z)and the originial point (0,0,0)
+				float ffirstpointdist=CurFit2D_CL(MPro_Pcent_2D,H,Pro_ForQuvRotaLocalPointsInBallWorld,fabc);
+				//transform the local origin point to the global axis
+				PointCLTypeDef PNewfirPont;//3D
+
+				BackRptaPontsToGlo_CL(ffirstpointdist,Mrot,Mrx1,Mrx2,MPro_Pcent,PNewfirPont);
+				//update the point sets
+				PNewfirPont.vLnum=PCent.vLnum;
+				vUnorgaPointsWorld[i]=PNewfirPont;
+				//update the position of the vnLine
+				//UpdatePosiOfvnLine(PNewfirPont,vnLine);
+				i++;
+				H=6*clSampling;
+				nINUM=0;
+				bRoM1=false;
+			}
+			else
+			{	//Points_3D.txt contains the points before plane fitting
+				//char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D.txt";
+				//WriteCA2Txt(vLocalPointsInBallWorld,Points_3D_Filename);
+				////Pro_Points_3D.txt contains the projected points after plane fitting
+				/*char *Pro_Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Pro_Points_3D.txt";
+				WriteCA2Txt(Pro_RotedvLocalPointsInBallWorld,Pro_Points_3D_Filename);*/
+				//Pro_Local_Points_2D.txt contains the projected points after plane fitting
+				//char *Pro_Local_Points_2D="F:/Coronary_0/code/Resutsfusion/Pro_Local_Points_2D.txt";
+				//WriteCA2Txt(Pro_RotedvLocalPointsInBallWorld,Pro_Local_Points_2D);
+				//Points_2D.txt contains the points for calculate fro
+				//char *Points_2D_Filename="F:/Coronary_0/code/Resutsfusion/Points_2D.txt";
+				//WriteCA2Txt(Pro_ForRovRotaLocalPointsInBallWorld,Points_2D_Filename);
+				//Determine if it is a bifurcation
+
+				//float fcos=DeterIfBranPont1(PCent,ref,cl);
+				//if(fcos<0.6)//it is a bifurcation point
+				bRoM1=true;
+				nINUM++;
+
+				if(i==972||i==988||i==989)
+				{
+					char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_Local.txt";
+					WriteCA2Txt_CL(vLocalPointsInBallWorld,Points_3D_Filename);
+					char *Points_2D_Filename="F:/Coronary_0/code/Resutsfusion/Points_2D.txt";
+					WriteCA2Txt_CL(Pro_ForRovRotaLocalPointsInBallWorld,Points_2D_Filename);
+					char *Bef_Points_2D_Filename="F:/Coronary_0/code/Resutsfusion/Bef_Points_2D.txt";
+					WriteCA2Txt_CL(Pro_RotedvLocalPointsInBallWorld,Bef_Points_2D_Filename);
+					char *Reg_Points_2D_Filename="F:/Coronary_0/code/Resutsfusion/Reg_Points_2D.txt";
+					WriteCA2Txt_CL(vPonfxy,Reg_Points_2D_Filename);
+					int x=0;
+				}
+
+			}
 		}
 	}
 	return true;
@@ -6106,7 +7828,6 @@ bool Point_link(zxhImageDataT<short> &imgRot,zxhImageDataT<short>&imgRotCent,vec
 	}
 	return true;
 }
-
 bool Point_link_biro(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu,vector<PointImgTypeDef> &vproot,int &R,vector<PointLinkDef> &vbitulink)
 {
 	zxhImageDataT<short> imgRot_cormarg;
@@ -6155,7 +7876,6 @@ bool Point_link_ro(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu,
 	}
 	return true;
 }
-
 
 bool BifurDec(zxhImageDataT<short>&imgReadNewRaw)
 {
@@ -6206,6 +7926,7 @@ int main(int argc, char *argv[])
 	
 	//read and resample the curve
 	//--..--..--..--..
+
      string strfilenameraw =  "J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CAE_ME_L.nii.gz";
 	char *chRefCurvefilename ="J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CL0.vtk";
 	char *chTarCurvefilename="J:/JDQ/CCTA_CAR/RCAA_32/training/dataset00/CL1.vtk";
@@ -6246,29 +7967,46 @@ int main(int argc, char *argv[])
 	ResamEveryCurve(vnLine,clSampling);
 	
 	//Transform all the points of lines into unorganized points
-	vector<PointCordTypeDef> vUnorgaPointsWorld;
-	TransAllPontsIntoUnorga(vnLine,vUnorgaPointsWorld);
+	vector<PointCLTypeDef> vUnorgaPointsWorld;
+	vector<PointLPTypeDef> vUnorgaPointsWorld_LP;
+	TransAllPontsIntoUnorga_LP(vnLine,vUnorgaPointsWorld,vUnorgaPointsWorld_LP);
 	//Store the unique points
-	vector<PointCordTypeDef> vUnorgaPointsWorld_ori;
-	StorUnique(vUnorgaPointsWorld);	
+	vector<PointCLTypeDef> vUnorgaPointsWorld_ori;
+	StorUnique_LP(vUnorgaPointsWorld,vUnorgaPointsWorld_LP);	
 	//first fusion
+	
 	vUnorgaPointsWorld_ori.assign(vUnorgaPointsWorld.begin(),vUnorgaPointsWorld.end());
 	
 	char *Points_3D_ori_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_ori_n.txt";
 	//WriteCA2Txt_Skip(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
-	WriteCA2Txt(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
-	//adjust every points by section
-	AdEvePontsBySec_ALL(clSampling,vUnorgaPointsWorld,vnLine);
+	WriteCA2Txt_CL(vUnorgaPointsWorld_ori,Points_3D_ori_Filename);
 	
-	char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new.txt";
+	//adjust every points by section
+	vector<vector<PointCLTypeDef>> vvpoints;
+	AdEvePontsBySec_ALL_LP1(clSampling,vUnorgaPointsWorld,vUnorgaPointsWorld_LP,vnLine,vvpoints);
+	for(int i=0;i<vvpoints.size();i++)
+	{
+		char chTemp[25];
+		_itoa_s(i, chTemp, 10);
+		char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new_";
+		int nLen1 = strlen(Points_3D_Filename) + strlen(chTemp) + strlen(".txt") + 1;
+		char *chFileName1 = (char *)malloc(nLen1);
+		strcpy(chFileName1, Points_3D_Filename);
+		strcat(chFileName1, chTemp);
+		strcat(chFileName1, ".txt");
+		WriteCA2Txt_CL(vvpoints[i],Points_3D_Filename);
+		free(chFileName1);
 	//WriteCA2Txt_Skip(vUnorgaPointsWorld,Points_3D_Filename);
-	WriteCA2Txt(vUnorgaPointsWorld,Points_3D_Filename);
+	
+
+	}
+	/*
 	//second fusion
 	//char *Points_3D_Filename="F:/Coronary_0/code/Resutsfusion/Points_3D_new.txt";
 	//vector<PointCordTypeDef> vAdpoints;
 	//ReadCA2Txt(vAdpoints,Points_3D_Filename);
 	//AdEvePontsBySec_ALL(clSampling,vUnorgaPointsWorld, vnLine);
-
+	*/
 	//--..--..--..--..
 	//----------------------
 	
@@ -6346,14 +8084,6 @@ int main(int argc, char *argv[])
 //string chFileName2(chResultName2);
 //zxh::SaveImage(&imgVProotRaw,chFileName2.c_str());
 
-//vector <PointImgTypeDef> vCenPont;
-//GetBrPontsInOrder(imgRotCent,vCenPont);
-//int R=3;
-//	vector<PointImgTypeDef> vpbitu;
-//	vector<PointImgTypeDef> vptroot;
-//Point_select(imgRot,vCenPont,R,vpbitu,vptroot);
-//
-//Point_link(imgRot,R,vpbitu,vptroot);
 //----....----....----....----....----....----....
 //-----.....-----.....-----.....-----.....-----.....-----.....-----.....
 //get the link of the bifurcation points and root points
