@@ -10,7 +10,7 @@
 			 $Revision: 2.0$
 
   Update log: template <class DataType=DataTypeDefault> class zxhMatrixT,
-				DataTypeDefault=double
+				DataTypeDefault=float
 			2012-9-4 modified with ZXH's comments. 
 					 add boundary judgement and memory judgement.
 					 marked with //zxh add.
@@ -44,12 +44,10 @@
 #include <vector>
 #include <cmath>
 #include "zxh.h"
-
-#define DataTypeDefault double
-
+ 
 
 
-template <class DataType=DataTypeDefault>
+template <class DataType=float>
 class zxhMatrixT
 {
 public:
@@ -579,13 +577,12 @@ int zxhMatrixT<DataType>::EigenvalueVectorRealSymmetryJacobi( zxhMatrixT& a, zxh
 		}
 	}
 	return(1);
-}
+};
 
 
 
-
-typedef zxhMatrixT<DataTypeDefault> zxhMatrix;
 typedef zxhMatrixT<float> zxhMatrixF;
+typedef zxhMatrixT<float> zxhMatrix;
 
 
 #endif

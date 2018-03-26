@@ -254,7 +254,7 @@ bool readCenterlinevtk(const char *filename,
 	{
 		iGridRead->GetPoint(i, dCord);
 		strctTempPoint._x = dCord[0];
-		strctTempPoint._y = dCord[1];
+		strctTempPoint._y =dCord[1];
 		strctTempPoint._z = dCord[2];
 		cl.push_back(strctTempPoint);
 	}

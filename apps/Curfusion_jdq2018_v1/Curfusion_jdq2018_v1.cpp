@@ -925,7 +925,7 @@ bool MapCurvPontsToImage(vector<PointCordTypeDef> &vPathPointsWorld,zxhImageData
 	vPathPointsWorldMAPT.clear();
 	for (int i=0;i<vPathPointsWorld.size();i++)//map the vetor points to the image
 	{
-		float PointPosWorld[ImageDimensionMax]={0};
+		float PointPosWorld[ZXH_ImageDimensionMax]={0};
 		int PointPos[4]={0};
 		PointCordTypeDef PointMAPT;
 		PointPosWorld[0]=vPathPointsWorld[i].x;
@@ -6089,7 +6089,7 @@ bool MapModelPointsToImage(zxhImageDataT<short>&imgReadNewRaw,vector<PointCordTy
 	vPathPointsWorldMAPT.clear();
 	for (int i=0;i<vPathPointsWorld.size();i++)//map the vetor points to the image
 	{
-		float PointPosWorld[ImageDimensionMax]={0};
+		float PointPosWorld[ZXH_ImageDimensionMax]={0};
 		int PointPos[4]={0};
 		PointCordTypeDef PointMAPT;
 		PointPosWorld[0]=vPathPointsWorld[i].x;

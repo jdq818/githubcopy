@@ -733,7 +733,7 @@ bool MapCurvPontsToImage(vector<PointCordTypeDef> &vPathPointsWorld,zxhImageData
 	vPathPointsWorldMAPT.clear();
 	for (int i=0;i<vPathPointsWorld.size();i++)//map the vetor points to the image
 	{
-		float PointPosWorld[ImageDimensionMax]={0};
+		float PointPosWorld[ZXH_ImageDimensionMax]={0};
 		int PointPos[4]={0};
 		PointCordTypeDef PointMAPT;
 		PointPosWorld[0]=vPathPointsWorld[i].x;
@@ -4244,7 +4244,7 @@ bool MapModelPointsToImage(zxhImageDataT<short>&imgReadNewRaw,vector<PointCordTy
 	vPathPointsWorldMAPT.clear();
 	for (int i=0;i<vPathPointsWorld.size();i++)//map the vetor points to the image
 	{
-		float PointPosWorld[ImageDimensionMax]={0};
+		float PointPosWorld[ZXH_ImageDimensionMax]={0};
 		int PointPos[4]={0};
 		PointCordTypeDef PointMAPT;
 		PointPosWorld[0]=vPathPointsWorld[i].x;
@@ -6106,6 +6106,7 @@ bool Point_link(zxhImageDataT<short> &imgRot,zxhImageDataT<short>&imgRotCent,vec
 	}
 	return true;
 }
+
 bool Point_link_biro(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu,vector<PointImgTypeDef> &vproot,int &R,vector<PointLinkDef> &vbitulink)
 {
 	zxhImageDataT<short> imgRot_cormarg;
@@ -6154,6 +6155,7 @@ bool Point_link_ro(zxhImageDataT<short> &imgRot,vector<PointImgTypeDef> &vpbitu,
 	}
 	return true;
 }
+
 
 bool BifurDec(zxhImageDataT<short>&imgReadNewRaw)
 {
@@ -6344,6 +6346,14 @@ int main(int argc, char *argv[])
 //string chFileName2(chResultName2);
 //zxh::SaveImage(&imgVProotRaw,chFileName2.c_str());
 
+//vector <PointImgTypeDef> vCenPont;
+//GetBrPontsInOrder(imgRotCent,vCenPont);
+//int R=3;
+//	vector<PointImgTypeDef> vpbitu;
+//	vector<PointImgTypeDef> vptroot;
+//Point_select(imgRot,vCenPont,R,vpbitu,vptroot);
+//
+//Point_link(imgRot,R,vpbitu,vptroot);
 //----....----....----....----....----....----....
 //-----.....-----.....-----.....-----.....-----.....-----.....-----.....
 //get the link of the bifurcation points and root points
