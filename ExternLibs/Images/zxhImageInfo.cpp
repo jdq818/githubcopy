@@ -17,7 +17,7 @@ zxhImageInfo::zxhImageInfo()
 	DataType=0 ;			//unknown
 	ImageFormat="";			//unknown
 
-	for(int i=0;i<ZXH_ImageDimensionMax;i++)
+	for(int i=0;i<ImageDimensionMax;i++)
 	{
 		Spacing[i]	= 1.0f;	//default
 		Size[i]		= 1;	//default
@@ -74,7 +74,7 @@ zxhImageInfo * zxhImageInfo::CloneTo(zxhImageInfo * & pRet) const
 
 	pRet->OrientationMethod = this->OrientationMethod ;
 
-	for(int i=0;i<ZXH_ImageDimensionMax;i++)
+	for(int i=0;i<ImageDimensionMax;i++)
 	{
 		pRet->Spacing[i]	= this->Spacing[i];
 		pRet->Size[i]		= this->Size[i];
@@ -151,47 +151,6 @@ std::string zxhImageInfo::GetPrintString() const
 
 	return ret ;
 }
-
-
-std::string	zxhImageInfo::GetPrintStringSimpleQuuatern() const
-{
-	char buffer[1024];
-	sprintf(buffer,"#quaternion qf,qb,qc,qd,qx,qy,qz#\n%f\t %f\t%f\t%f\t %f\t%f\t%f\n",
-		QuaternFactor, QuaternB, QuaternC, QuaternD, Qoffsetxyz[0], Qoffsetxyz[1], Qoffsetxyz[2] ); 
-	std::string str = buffer;
-	return str; 
-}
-bool zxhImageInfo::SetImageInfoSimpleQuaternFromStream( std::ifstream& ifs )  
-{
- // else read in quaternion orientation info:
-	 //      m_ImageInfo.QuaternFactor, m_ImageInfo.QuaternB, m_ImageInfo.QuaternC, m_ImageInfo.QuaternD, m_ImageInfo.Qoffsetxyz[0], m_ImageInfo.Qoffsetxyz[1], m_ImageInfo.Qoffsetxyz[2]
-	char buffer[1024];
-	float qp[7] = {0,0,0,0,0,0,0} ;
-	int iqp = 0 ;
-	std::string sLine,sContent,sComment ;
-	while( iqp<7 && ifs.eof()==false&&ifs.fail()==false )
-	{
-		do{
-			ifs.getline(buffer,1024);
-			sLine=buffer;
-			zxh::ParseStringLine(sContent,sComment,sLine);
-			zxh::trim_both(sContent);
-		}while( sContent.empty() && ifs.eof()==false&&ifs.fail()==false );
-		std::istringstream strstrm(sContent.c_str());
-		for(int i=iqp;i<7;++i)
-		{	strstrm>>qp[i] ; ++iqp ; }
-	}
-	if( iqp == 7 )
-	{
-		QuaternFactor = qp[0] ; QuaternB = qp[1] ;
-		QuaternC = qp[2] ; 		QuaternD = qp[3] ;
-		for( int i=0; i<3; ++i )	
-			Qoffsetxyz[i] = qp[i+4] ;
-		UpdateOrientationInfo(-2);
-	} 
-	return iqp==7 ;
-}
-
 void zxhImageInfo::GetExtent( float e[] ) const
 {
 	for(int id=0; id<this->Dimension; ++id) e[id] = Spacing[id]*(Size[id]-1);
@@ -199,14 +158,14 @@ void zxhImageInfo::GetExtent( float e[] ) const
 /// return the start and end of extent in world coordinates
 void zxhImageInfo::GetExtent( float worldfrom[], float worldto[] ) const
 {
-	for( int i=0; i<ZXH_ImageDimensionMax; ++i )
+	for( int i=0; i<ImageDimensionMax; ++i )
 	{
 		worldfrom[i] = 0;
 		worldto[i] = static_cast<float>(Size[i]-1 );
 	}
 	this->ImageToWorld( worldfrom ) ;
 	this->ImageToWorld( worldto ) ;
-	for( int i=0; i<ZXH_ImageDimensionMax; ++i )
+	for( int i=0; i<ImageDimensionMax; ++i )
 		if( worldfrom[i] > worldto[i] )
 		{
 			float a =worldto[i] ;
@@ -244,13 +203,13 @@ bool zxhImageInfo::SameDimSizeSpacingAs( const zxhImageInfo * pTest ) const
 	}
 	return true ;
 }
-void zxhImageInfo::GetSizeUsingExtent(const float e[ZXH_ImageDimensionMax], int s[ZXH_ImageDimensionMax]) const
+void zxhImageInfo::GetSizeUsingExtent(const float e[ImageDimensionMax], int s[ImageDimensionMax]) const
 {
 	for(int idim=0;idim<Dimension;++idim)
 		s[idim] = int(ceil( e[idim]/Spacing[idim]+1 ) );
 };
 /// get new size if change to different spacing
-void zxhImageInfo::GetSizeUsingSpacing(const float sp[ZXH_ImageDimensionMax], int sz[ZXH_ImageDimensionMax]) const
+void zxhImageInfo::GetSizeUsingSpacing(const float sp[ImageDimensionMax], int sz[ImageDimensionMax]) const
 {
 	for(int idim=0;idim<Dimension;++idim)
 		sz[idim] = int(ceil( float(Size[idim]-1)*Spacing[idim]/sp[idim]+1 ) );
@@ -409,7 +368,7 @@ bool	zxhImageInfo::CopyOrientationInfoFrom(const zxhImageInfo*pSource)
 
 	if( Dimension<1||Dimension>4 )
 		Dimension = pSource->Dimension ;
-	for(int i=0;i<ZXH_ImageDimensionMax;i++)
+	for(int i=0;i<ImageDimensionMax;i++)
 	{
 		//Spacing[i]	= pSource->Spacing[i];
 		//S/ize[i]		= pSource->Size[i];
@@ -446,7 +405,7 @@ bool zxhImageInfo::UpdateImageInfoUsingNewSpacing( const float * spacing )
 	if( spacing == 0 ) return false ;
 	int size[] = {1,1,1,1} ; 
 	GetSizeUsingSpacing( spacing, size ) ; 
-	for( int i=0; i<ZXH_ImageDimensionMax; ++i ) 
+	for( int i=0; i<ImageDimensionMax; ++i ) 
 	{
 		Spacing[i] = spacing[i] ; 
 		Size[i] = size[i] ; 
@@ -684,9 +643,8 @@ void zxhImageInfo::GetMatrixPhysicalToWorld( float *m ) const
 
  
 
-int	zxhImageInfo::ConstructIndexOffsetCube( int radiusx, int radiusy, int radiusz, int subx, int suby, int subz, int * offset ) const
+void	zxhImageInfo::ConstructIndexOffset( int radiusx, int radiusy, int radiusz, int subx, int suby, int subz, int * offset ) const
 { 
-	if( offset==0 ) return -1 ; 
 	int num=0;
 	for( int sez=-radiusz; sez<= radiusz; ++sez ) // search volume
 	for( int sey=-radiusy; sey<= radiusy; ++sey )
@@ -694,133 +652,14 @@ int	zxhImageInfo::ConstructIndexOffsetCube( int radiusx, int radiusy, int radius
 	{ 
 		offset[num++] = this->GridToIndex( sex*subx,sey*suby,sez*subz ) ;  
 	}
-	return num ; 
-}
-/// return num of pixels in the offset array, which is a sphere with radius in mm unit 
-int	zxhImageInfo::ConstructIndexOffsetSphere( float fPhysRadiusMM, int* offset ) const
-{
-	if( offset==0 ) return -1 ; 
-	int radiusx = fPhysRadiusMM/Spacing[0]; 
-	int radiusy = fPhysRadiusMM/Spacing[1]; 
-	int radiusz = fPhysRadiusMM/Spacing[2];
-	int num=0;
-	for( int sez=-radiusz; sez<= radiusz; ++sez ) // search volume
-	for( int sey=-radiusy; sey<= radiusy; ++sey )
-	for( int sex=-radiusx; sex<= radiusx; ++sex ) 
-	{ 
-		if( (sex*Spacing[0])*(sex*Spacing[0])+
-			(sey*Spacing[1])*(sey*Spacing[1])+
-			(sez*Spacing[2])*(sez*Spacing[2]) <= fPhysRadiusMM*fPhysRadiusMM )
-			offset[num++] = this->GridToIndex( sex,sey,sez ) ;  
-	}
-	return num ; 
-} 
-/// return num of pixels in the offset array, which is a 2D circle with radius in mm unit 
-int	zxhImageInfo::ConstructIndexOffset2DCirc( float fPhysRadiusMM, int* offset ) const
-{
-	if( offset==0 ) return -1 ; 
-	int radiusx = fPhysRadiusMM/Spacing[0]; 
-	int radiusy = fPhysRadiusMM/Spacing[1];  
-	int num=0; 
-	for( int sey=-radiusy; sey<= radiusy; ++sey )
-	for( int sex=-radiusx; sex<= radiusx; ++sex ) 
-	{ 
-		if( (sex*Spacing[0])*(sex*Spacing[0])+
-			(sey*Spacing[1])*(sey*Spacing[1]) <= fPhysRadiusMM*fPhysRadiusMM )
-			offset[num++] = this->GridToIndex( sex,sey,0 ) ;  
-	}
-	return num ; 
-} ;
-
-/// return num of pixels in the offset array, which is a sphere with radius in 1 pixel 
-int	zxhImageInfo::ConstructIndexOffsetNeighbour( int* offset ) const
-{
-	if( offset==0 ) return -1 ; 
-	int nei[7][3] = { 0,0,0,   0,0,1, 0,0,-1,   0,1,0, 0,-1,0,   1,0,0, -1,0,0 } ; 
-	int num=0; 
-	for( int i=0; i<7; ++i )
-		offset[num++] = this->GridToIndex( nei[i][0], nei[i][1], nei[i][2] ) ; 
-	return num ; 
-} ;
-	
-/// return num of pixels in the offset array, which is a sphere with radius in 1 pixel 
-int	zxhImageInfo::ConstructIndexOffsetNeighbour2D( int* offset ) const
-{
-	if( offset==0 ) return -1 ; 
-	int nei[5][3] = { 0,0,0,   0,1,0, 0,-1,0,   1,0,0, -1,0,0 } ; 
-	int num=0; 
-	for( int i=0; i<5; ++i )
-		offset[num++] = this->GridToIndex( nei[i][0], nei[i][1], nei[i][2] ) ; 
-	return num ; 
-} ;
-
-void zxhImageInfo::GetOrthogonalOrientationWorldCoordinateCornersSpacingSize( float Corner0World[], float Corner1World[], float SpacingWorld[], int WorldImageSize[] ) const
-{
-	for( int id=0; id<Dimension; ++id )
-	{
-		float from[ZXH_ImageDimensionMax]={0}, to[ZXH_ImageDimensionMax]={0} ;
-		to[id] = Size[id]-1 ; 
-		this->ImageToWorld(from) ; 
-		this->ImageToWorld(to);
-		float spacingforworld = 0 ; 
-		int jDimOfWorld = 0 ; 
-		for( int jspc=0; jspc<Dimension; ++jspc )
-		{
-			float f = zxh::absf(from[jspc]-to[jspc]) ;
-			if( f>spacingforworld ) 
-			{
-				spacingforworld = f ; 
-				jDimOfWorld = jspc;
-			}
-		}
-		SpacingWorld[jDimOfWorld] = Spacing[id] ;
-		WorldImageSize[jDimOfWorld] = Size[id] ;
-		if( from[id]>to[id] )
-		{
-			Corner1World[jDimOfWorld] = from[id] ; 
-			Corner0World[jDimOfWorld] = to[id] ; 
-		}
-		else
-		{
-			Corner1World[jDimOfWorld] = to[id] ; 
-			Corner0World[jDimOfWorld] = from[id] ; 
-		} 
-	}
 }
 
-/// recompute Spacing, Size and 
-void zxhImageInfo::UpdateOrthogonalImageQuaternInfoUsingWorldInfo( const float* Corner0World, const float* Corner1World, const float* SpacingWorld, const int* WorldImageSize )
-{
-	for( int id=0; id<Dimension; ++id )
-	{
-		float	from[ZXH_ImageDimensionMax] = {Corner0World[0],Corner0World[1],Corner0World[2],Corner0World[3]}, 
-				to[ZXH_ImageDimensionMax] = {Corner0World[0],Corner0World[1],Corner0World[2],Corner0World[3]} ;
-		to[id] = Corner1World[id] ; 
-		this->WorldToImage(from) ; 
-		this->WorldToImage(to) ;
-		float lengthofimage = 0 ; 
-		int jDimOfImage = 0 ; 
-		for( int jspc=0; jspc<Dimension; ++jspc )
-		{
-			float f = zxh::absf(from[jspc]-to[jspc]) ;
-			if( f>lengthofimage ) 
-			{
-				lengthofimage = f ; 
-				jDimOfImage = jspc;
-			}
-		}
-		Spacing[jDimOfImage] = SpacingWorld[id] ;
-		Size[jDimOfImage] = WorldImageSize[id] ;
-	}
-	Qoffsetxyz[0] = Qoffsetxyz[1] = Qoffsetxyz[2] = 0 ; 
-	this->UpdateOrientationInfo( -2 ) ; 
-	float	afCenterCorr[] = { 0.5*(Size[0]-1), 0.5*(Size[1]-1), 0.5*(Size[2]-1), 0},
-		afCenterOrig[] = { 0.5*(Corner0World[0]+Corner1World[0]), 0.5*(Corner0World[1]+Corner1World[1]), 0.5*(Corner0World[2]+Corner1World[2]), 0 } ; 
-	this->ImageToWorld( afCenterCorr ) ; 
-	for( int id=0; id<Dimension&&id<3; ++id )
-		Qoffsetxyz[id] = afCenterOrig[id] - afCenterCorr[id] ; 
 
-}
+
+
+
+
+
 
 
 

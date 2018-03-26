@@ -8,18 +8,18 @@
 ////{
 //
 ////constructor
-////template<class ZXH_PixelTypeDefault>
+////template<class PixelTypeDefault>
 //zxhImageParRec::zxhImageParRec(void)
 //{
 //}
 //
-////template<class ZXH_PixelTypeDefault>
+////template<class PixelTypeDefault>
 //zxhImageParRec::~zxhImageParRec(void)
 //{
 //}
 //
 //// copy from nminReadParRecHamburg.c
-////template<class ZXH_PixelTypeDefault>
+////template<class PixelTypeDefault>
 //int zxhImageParRec::GrepLineFromFilePlus(int iplus,FILE *fpascii,char *matchstring,char *matchline)
 //{
 //  char dummystring[max_buffer_length];
@@ -50,7 +50,7 @@
 //}
 //
 //// copy from nminReadParRecHamburg.c
-////template<class ZXH_PixelTypeDefault>
+////template<class PixelTypeDefault>
 //int zxhImageParRec::GrepLineFromFile(FILE *fpascii,char *matchstring,char *matchline)
 //{
 //  char dummystring[max_buffer_length];
@@ -79,7 +79,7 @@
 //}
 //
 //// copy form nminReadParRecHamburg
-////template<class ZXH_PixelTypeDefault>
+////template<class PixelTypeDefault>
 //bool zxhImageParRec::OpenImageParRec(const char *pFilePar,const char* pFileRec)
 //{
 //	// begin extract the information from the Par file
@@ -248,7 +248,7 @@
 //	std::cout<<"Open Par_Rec:"<<pFilePar<<" Image Success!\n" ;
 //	return true;
 //}
-////template<class ZXH_PixelTypeDefault>
+////template<class PixelTypeDefault>
 //bool zxhImageParRec::OpenImage(const char*pFilename)
 //{
 //	std::string sFile	= pFilename;

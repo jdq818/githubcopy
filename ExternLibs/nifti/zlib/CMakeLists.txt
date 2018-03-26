@@ -13,14 +13,12 @@ INCLUDE_DIRECTORIES(${ZXHZLIB_BINARY_DIR})
 SET(NIFTI_ZLIB_LIBRARIES zlib ${NIFTI_ZLIB_LIBRARIES})
 
 # source files for zlib
-FILE(GLOB ZXHZLIB_SRCS_Hfiles "*.h")
 SET(ZXHZLIB_SRCS
 adler32.c   gzio.c      inftrees.c  uncompr.c
 compress.c  infblock.c  infutil.c   zutil.c
 crc32.c     infcodes.c 
 deflate.c   inffast.c  
-inflate.c   trees.c 
-${ZXHZLIB_SRCS_Hfiles}
+inflate.c   trees.c
 )
 
 # for windows add the .def and .rc files to the source list   // remove for building x64 in windows

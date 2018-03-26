@@ -33,12 +33,14 @@ using namespace std;
 /// we can use this class to define a 3d Point or a 3d vector in the x-y-z axis.
 /// example:
 /// if the coordinate of the point or vector is (a,b,c), we can define as follows:
-/// zxhPoint point(a,b,c). 
+/// zxhPoint point(a,b,c).
+/// here, the data type is double.
 /// \ingroup zxhPointT
 ///
- 
 
-template <class DataType=float>
+#define DataTypeDefault double
+
+template <class DataType=DataTypeDefault>
 class zxhPointT
 {
 public:
@@ -147,7 +149,7 @@ zxhPointT<DataType> zxhPointT<DataType>::operator/( DataType m )
 {
 	if (m==0.0)
 	{
-		cerr<<"the m should not be zero"<<endl;
+		cerr<<"the double m should not be zero"<<endl;
 		exit(1);
 	}
 	zxhPointT<DataType> temp;
@@ -262,7 +264,10 @@ zxhPointT<DataType> zxhPointT<DataType>::operator/=(DataType m)
 	z/=m; 
 	return *this;
 }
- 
+
+
+
+typedef zxhPointT<DataTypeDefault> zxhPoint;
 typedef zxhPointT<float> zxhPointF;
 
 

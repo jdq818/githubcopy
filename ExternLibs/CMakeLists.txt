@@ -1,4 +1,4 @@
   
- SUBDIRS (nifti Images Common ImageModelings) 
+ SUBDIRS (nifti Images Common) 
 
  

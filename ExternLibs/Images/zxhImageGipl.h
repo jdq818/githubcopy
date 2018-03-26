@@ -31,9 +31,15 @@
 ///                           when set to original intensity when read in, set to rescale value when save out
 /// \ingroup zxhImageData
 ///
-//typedef ZXH_PixelTypeDefault GiplType;
- 
-template<class PixelType=ZXH_PixelTypeDefault>
+//typedef PixelTypeDefault GiplType;
+
+
+#ifndef float8
+#define float8 double
+#endif
+
+
+template<class PixelType=PixelTypeDefault>
 class zxhImageGiplT //:	public zxhImageDataT<PixelType>
 {
 public:
@@ -144,7 +150,7 @@ bool zxhImageGiplT<PixelType>::OpenImage( zxhImageDataT<PixelType> * pImage, con
 	case GIPL_INT: bufferdata = new int[iVolume4D]; typesize = sizeof( int ) ;
 		//if( glbVerboseOutput>0 ) std::cout<<"success: image data type GIPL_INT\n";
 		break;
-	case GIPL_DOUBLE: bufferdata = new float8[iVolume4D];typesize=sizeof(float8);
+	case GIPL_DOUBLE: bufferdata = new double[iVolume4D];typesize=sizeof(double);
 		//if( glbVerboseOutput>0 ) std::cout<<"success: image data type GIPL_DOUBLE \n";
 		break;
 	default:
@@ -418,7 +424,7 @@ bool zxhImageGiplT<PixelType>::ReadHeader( zxhImageInfo &imageinfo, const std::s
 			if( glbVerboseOutput>0 ) std::cout<<"success: image data type GIPL_INT\n";
 			break;
 		case GIPL_DOUBLE:
-			if( glbVerboseOutput>0 ) std::cout<<"success: image data type GIPL_DOUBLE (long double 64bits) \n";
+			if( glbVerboseOutput>0 ) std::cout<<"success: image data type GIPL_DOUBLE \n";
 			break;
 		default:
 			std::cerr<<"error: unrecognized data type !\n";
@@ -463,8 +469,8 @@ bool zxhImageGiplT<PixelType>::SaveImage(const zxhImageDataT<PixelType>*pImg,con
 	case GIPL_INT: typesize = sizeof( int ) ;
 		if( glbVerboseOutput>0 ) std::cout<<"success: image data type GIPL_INT\n";
 		break;
-	case GIPL_DOUBLE: typesize = sizeof( float8 ) ;
-		if( glbVerboseOutput>0 ) std::cout<<"success: image data type GIPL_DOUBLE (long double 64bits)\n";
+	case GIPL_DOUBLE: typesize = sizeof( double ) ;
+		if( glbVerboseOutput>0 ) std::cout<<"success: image data type GIPL_DOUBLE \n";
 		break;
 	default:
 		std::cerr<<"Error: unrecognized image data type\n";
@@ -521,7 +527,7 @@ bool zxhImageGiplT<PixelType>::SaveImage(const zxhImageDataT<PixelType>*pImg,con
 		float orm_t[] = {imageinfo.OrientationRotationMatrix[0][0], imageinfo.OrientationRotationMatrix[1][0], imageinfo.OrientationRotationMatrix[2][0], 0,
 					 imageinfo.OrientationRotationMatrix[0][1], imageinfo.OrientationRotationMatrix[1][1], imageinfo.OrientationRotationMatrix[2][1], 0,
 					0,0,0,0} ;
-		for(int ipos=0;ipos<ZXH_ImageDimensionMax*3;++ipos)
+		for(int ipos=0;ipos<ImageDimensionMax*3;++ipos)
 		{
 			swap4= orm_t[ipos];
 			zxh::SwapBytes((void*)&swap4,sizeof(float));
@@ -539,7 +545,7 @@ bool zxhImageGiplT<PixelType>::SaveImage(const zxhImageDataT<PixelType>*pImg,con
 		}
 	}
 	// origin may not be useful anymore in method3
-	for(int idim=0;idim<ZXH_ImageDimensionMax;++idim)
+	for(int idim=0;idim<ImageDimensionMax;++idim)
 	{
 		swap8=static_cast<float8>(imageinfo.Origin[idim]);
 		zxh::SwapBytes((void*)&swap8,sizeof(float8));
@@ -581,7 +587,6 @@ bool zxhImageGiplT<PixelType>::SaveImage(const zxhImageDataT<PixelType>*pImg,con
 		}
 	case GIPL_DOUBLE:
 	case GIPL_FLOAT:
-	//case NIFTI_TYPE_FLOAT128: 
 	default:
 		{
 			if(  (slope!=1&&slope!=0) || inter!=0)
@@ -660,7 +665,7 @@ int zxhImageGiplT<PixelType>::ReadAnalyze(const std::string filename, zxhImageDa
 	short idatatype ;
 	if (bswap)
 	{
-		for (int i = 0; i < ZXH_ImageDimensionMax; ++i)
+		for (int i = 0; i < ImageDimensionMax; ++i)
 		{
 			short int reso = *(short *)&header[42 + i * sizeof(short)];
 			zxh::Swap2Bytes((void*)&reso) ;
@@ -669,7 +674,7 @@ int zxhImageGiplT<PixelType>::ReadAnalyze(const std::string filename, zxhImageDa
 			zxh::Swap4Bytes((void*)&spacing[i]) ;
 
 			// origin
-			float8 orig= *(float8*)&header[204+i*sizeof(float8)] ;
+			double orig= *(double*)&header[204+i*sizeof(double)] ;
 			zxh::Swap8Bytes( (void*)&orig ) ;
 			origin[i] = orig;
 		}
@@ -682,12 +687,12 @@ int zxhImageGiplT<PixelType>::ReadAnalyze(const std::string filename, zxhImageDa
 	}
 	else
 	{
-		for (int i = 0; i < ZXH_ImageDimensionMax; ++i)
+		for (int i = 0; i < ImageDimensionMax; ++i)
 		{
 			size[i] = *(short *)&header[42 + i * sizeof(short)];
 			spacing[i] = *(float *)&header[80 + i * sizeof(float)];
 			// origin
-			origin[i]= *(float8*)&header[204+i*sizeof(float8)] ;
+			origin[i]= *(double*)&header[204+i*sizeof(double)] ;
 		}
 		idatatype = *(short *)&header[70];
 		short bitpix = *(short *)&header[72];
@@ -695,7 +700,7 @@ int zxhImageGiplT<PixelType>::ReadAnalyze(const std::string filename, zxhImageDa
 	// orientation, origin, analyze_orient
 	imageorient = header[186] ;
 
-	for (int i = 0; i < ZXH_ImageDimensionMax; ++i) // Make sure no dimensions are zero
+	for (int i = 0; i < ImageDimensionMax; ++i) // Make sure no dimensions are zero
 	{
 		if(size[i]<1) size[i]=1;
 		if(spacing[i]<=0) spacing[i]=1;
@@ -769,8 +774,7 @@ int zxhImageGiplT<PixelType>::ReadAnalyze(const std::string filename, zxhImageDa
 		break;
 	case GIPL_INT:typesize = sizeof( int ) ;// bufferdata = new int[iVolume4D];
 		break;
-	case GIPL_DOUBLE:typesize=sizeof(float8);  
-	//case NIFTI_TYPE_FLOAT128:typesize=sizeof(long double); // bufferdata = new double[iVolume4D];
+	case GIPL_DOUBLE:typesize=sizeof(double); // bufferdata = new double[iVolume4D];
 		break;
 	default:
 		std::cerr<<"error: open image:"<<filename<<" failed because un-recognized data type !\n";
@@ -865,9 +869,8 @@ int zxhImageGiplT<PixelType>::ReadAnalyze(const std::string filename, zxhImageDa
 					pImg->SetImageData( ipos, static_cast<PixelType>( zxh::round(pImg->GetImageData(ipos)*slope +inter)) ) ; 
 			break;
 		}
-	case GIPL_DOUBLE: // 64bit, long double
-	case GIPL_FLOAT:  // 4 bit, float/double
-	//case NIFTI_TYPE_FLOAT128:
+	case GIPL_DOUBLE:
+	case GIPL_FLOAT:
 	default:
 		{
 			if(  slope!=1 || inter!=0)
@@ -882,7 +885,7 @@ int zxhImageGiplT<PixelType>::ReadAnalyze(const std::string filename, zxhImageDa
 	return 0;
 }
 
-typedef zxhImageGiplT<ZXH_PixelTypeDefault> zxhImageGipl;
+typedef zxhImageGiplT<PixelTypeDefault> zxhImageGipl;
 
 ///////////////////////move to zxhRegistration.h later ---------------------------///////////////////////////////////////////////////////
 namespace zxh{
@@ -904,7 +907,7 @@ bool OpenImage(zxhImageDataT<PixelType>*pImg, std::string strFilename)
 
 ///OpenImageSafe to open arbitrary type image into specific type image
 template <class PixelType>
-bool OpenImageSafe(zxhImageDataT<PixelType>*pImg, std::string strFilename )
+bool OpenImageSafe(zxhImageDataT<PixelType>*pImg, std::string strFilename, const zxhEnumerateDataType datatype)
 {
 	if (strcmp(zxh::GetExtension(strFilename).c_str(), "gipl") == 0)
 		return zxhImageGiplT<PixelType>::OpenImage(pImg, strFilename);
@@ -913,7 +916,7 @@ bool OpenImageSafe(zxhImageDataT<PixelType>*pImg, std::string strFilename )
 	{
 		if (zxhImageNiftiT<PixelType>::OpenImage(pImg, strFilename) == true)
 			return true;
-		else return zxhImageNiftiT<PixelType>::OpenImageSafe(pImg, strFilename);
+		else return zxhImageNiftiT<PixelType>::OpenImageSafe(pImg, strFilename, datatype);
 	}
 	return false;
 }
@@ -951,7 +954,6 @@ bool SaveImage(const zxhImageDataT<PixelType>*pImg, std::string strFilename)
 		case 2:	type = GIPL_SHORT ;break;
 		case 4:	type = GIPL_FLOAT ;break;
 		case 8:	type = GIPL_DOUBLE ;break;
-		case 16:	type = NIFTI_TYPE_FLOAT128 ;break;
 		default: return false ;
 		}
 	return SaveImage( pImg, type, strFilename ) ;

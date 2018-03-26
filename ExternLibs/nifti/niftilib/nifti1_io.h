@@ -340,8 +340,6 @@ znzFile nifti_image_write_hdr_img(nifti_image *nim, int write_data,
                                   const char* opts);
 znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_opts ,
                const char* opts, znzFile imgfile, const nifti_brick_list * NBL);
-znzFile nifti_image_write_hdr2_img2(nifti_image *nim, int write_opts,
-               const char* opts, znzFile imgfile, const nifti_brick_list * NBL);
 size_t  nifti_read_buffer(znzFile fp, void* datatptr, size_t ntot,
                          nifti_image *nim);
 int     nifti_write_all_data(znzFile fp, nifti_image * nim,
@@ -392,7 +390,6 @@ char * nifti_makebasename(const char* fname);
 
 
 /* other routines */
-struct nifti_2_header   nifti_convert_nim2nhdr2(const nifti_image* nim);
 struct nifti_1_header   nifti_convert_nim2nhdr(const nifti_image* nim);
 nifti_1_header * nifti_make_new_header(const int arg_dims[], int arg_dtype);
 nifti_1_header * nifti_read_header(const char *hname, int *swapped, int check);
@@ -401,10 +398,7 @@ nifti_image    * nifti_make_new_nim(const int dims[], int datatype,
                                                       int data_fill);
 nifti_image    * nifti_simple_init_nim(void);
 nifti_image    * nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
-                                        const char * fname); 
-/*! zxh: convert a nifti_2_header into a nift1_image 
-\return an allocated nifti_image, or NULL on failure*/
-nifti_image* nifti_convert_nhdr2TOnim(struct nifti_2_header nhdr, const char * fname); 
+                                        const char * fname);
 
 int    nifti_hdr_looks_good        (const nifti_1_header * hdr);
 int    nifti_is_valid_datatype     (int dtype);

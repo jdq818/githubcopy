@@ -552,11 +552,11 @@ bool ResoResaTraverseIntensityU1(const  short *sImgData, const  short *sWinImgDa
 					{
 						int m=0;
 					}
-					float from[ZXH_ImageDimensionMax]={ix,iy,iz,it};
+					float from[ImageDimensionMax]={ix,iy,iz,it};
 					imgReadNewRaw->GetImageInfo()->ImageToWorld(from);
-					float toImg[ZXH_ImageDimensionMax]={from[0],from[1],from[2],from[3]};
+					float toImg[ImageDimensionMax]={from[0],from[1],from[2],from[3]};
 					pImgInfo->WorldToImage(toImg);
-					int itoImg[ZXH_ImageDimensionMax]={(int)toImg[0],toImg[1],toImg[2],toImg[3]};
+					int itoImg[ImageDimensionMax]={(int)toImg[0],toImg[1],toImg[2],toImg[3]};
 					bInsideImg(itoImg,ImgReadRawSize);
 					int locali[4]={0};
 					int newix,newiy,newiz,newit;
@@ -1057,14 +1057,14 @@ int main(int argc, char *argv[])//without intensity nomalization
 	// get the image spacing
 	float fNewImgSpacing[]={1,1,1,1};//Add by JDQ
 	float fOldImgSpacing[]={1,1,1,1};
-	float fImgExtend[ZXH_ImageDimensionMax]={1,1,1,1};
-	float div[ZXH_ImageDimensionMax] = {1,1,1,1};
+	float fImgExtend[ImageDimensionMax]={1,1,1,1};
+	float div[ImageDimensionMax] = {1,1,1,1};
 
 	if( glbVerboseOutput>0 ) std::cout<<"success: size "<< imgReadRaw.GetImageSize()[0] <<" " <<imgReadRaw.GetImageSize()[1] <<" "<< imgReadRaw.GetImageSize()[2] <<" "<< imgReadRaw.GetImageSize()[3] <<"\n";
 	if( glbVerboseOutput>0 ) std::cout<<"success: spacing "<< imgReadRaw.GetImageSpacing()[0] <<" "<< imgReadRaw.GetImageSpacing()[1] <<" "<< imgReadRaw.GetImageSpacing()[2] <<" "<< imgReadRaw.GetImageSpacing()[3] <<"\n";
 	imgReadRaw.GetImageSpacing(fOldImgSpacing[0],fOldImgSpacing[1],fOldImgSpacing[2],fOldImgSpacing[3] );//Add by JDQ
 	//imgReadRaw.GetImageExtent( fImgExtend ) ;
-	int size[ZXH_ImageDimensionMax]={1,1,1,1};
+	int size[ImageDimensionMax]={1,1,1,1};
 	if (resample){
 		imgReadRaw.GetImageInfo()->GetSizeUsingSpacing(fNewImgSpacing,size);
 	}

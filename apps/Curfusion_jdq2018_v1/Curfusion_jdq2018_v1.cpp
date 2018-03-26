@@ -925,7 +925,7 @@ bool MapCurvPontsToImage(vector<PointCordTypeDef> &vPathPointsWorld,zxhImageData
 	vPathPointsWorldMAPT.clear();
 	for (int i=0;i<vPathPointsWorld.size();i++)//map the vetor points to the image
 	{
-		float PointPosWorld[ZXH_ImageDimensionMax]={0};
+		float PointPosWorld[ImageDimensionMax]={0};
 		int PointPos[4]={0};
 		PointCordTypeDef PointMAPT;
 		PointPosWorld[0]=vPathPointsWorld[i].x;
@@ -6089,7 +6089,7 @@ bool MapModelPointsToImage(zxhImageDataT<short>&imgReadNewRaw,vector<PointCordTy
 	vPathPointsWorldMAPT.clear();
 	for (int i=0;i<vPathPointsWorld.size();i++)//map the vetor points to the image
 	{
-		float PointPosWorld[ZXH_ImageDimensionMax]={0};
+		float PointPosWorld[ImageDimensionMax]={0};
 		int PointPos[4]={0};
 		PointCordTypeDef PointMAPT;
 		PointPosWorld[0]=vPathPointsWorld[i].x;
@@ -8603,10 +8603,8 @@ bool Gen_Distmap(std::vector<std::vector<std::vector<int> > > &LoRe,std::vector<
 	float fdist=0;
 	vector<PointImgTypeDef>vmap;
 	vmap.push_back(Pstar);
-	std::vector<std::vector<std::vector<int> > > LoRe_copy;
-	LoRe_copy.assign(LoRe.begin(),LoRe.end());
-	LoRe[Pstar.z][Pstar.x][Pstar.y]=0;
-	LoRe_Map[Pstar.z][Pstar.x][Pstar.y]=0;
+	LoRe[Pstar.z][Pstar.y][Pstar.x]=0;
+	LoRe_Map[Pstar.z][Pstar.y][Pstar.x]=0;
 	
 		while(!vmap.empty())
 		{
@@ -8617,15 +8615,15 @@ bool Gen_Distmap(std::vector<std::vector<std::vector<int> > > &LoRe,std::vector<
 				int nx = PontSeed.x + gNbr[i][0];
 				int ny = PontSeed.y + gNbr[i][1];
 				int nz = PontSeed.z + gNbr[i][2];
-				int nint=LoRe[nz][nx][ny];
+				int nint=LoRe[nz][ny][nx];
 				PointImgTypeDef tmp;
 				tmp.x=nx;
 				tmp.y=ny;
 				tmp.z=nz;
 				if(nx>=0&&nx<nSOfRe&&ny>=0&&ny<nSOfRe&&nz>=0&&nz<nSOfRe&&nint!=0)
 				{
-					LoRe[nz][nx][ny]=0;
-					LoRe_Map[nz][nx][ny]=fdist;
+					LoRe[nz][ny][nx]=0;
+					LoRe_Map[nz][ny][nx]=fdist;
 					vmap.push_back(tmp);
 				}
 			}

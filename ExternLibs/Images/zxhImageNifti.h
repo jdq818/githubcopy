@@ -26,8 +26,12 @@
 ///        ADD: read analyze format (.hdr,.img),y-dim index should be mirror flip in order to match gipl
 /// \ingroup zxhImageData
 ///
+#ifndef float8
+#define float8 double
+#endif
 
-template<class PixelType=ZXH_PixelTypeDefault>
+
+template<class PixelType=PixelTypeDefault>
 class zxhImageNiftiT
 {
 public:
@@ -40,7 +44,7 @@ public:
 	static bool OpenImage( zxhImageDataT<PixelType> * pImage, const std::string sFilename );
 	///
 	///OpenImageSafe to open arbitrary type image into specific type image
-	static bool OpenImageSafe(zxhImageDataT<PixelType> * pImage, const std::string sFilename ); //, const ZXH_EnumerateDataType datatype);
+	static bool OpenImageSafe(zxhImageDataT<PixelType> * pImage, const std::string sFilename, const zxhEnumerateDataType datatype);
 	/// only read image header
 	/// \return whether recognized gipl file
 	static bool ReadHeader( zxhImageInfo &imageinfo, const std::string strFilename, bool showinfo=false);
@@ -54,7 +58,7 @@ protected:
 	static bool SetNIFTIFromImageInfo( nifti_image* pNimg, zxhImageInfo & imageinfo ) ;
 	static std::string GetFilenameCheckGz(const std::string strFilename);
 	static long int GetValueAsLongIntFromOriginalNiiStruct(const nifti_image * pNimg, const int ipos);
-	static float8 GetValueAsDoubleFromOriginalNiiStruct(const nifti_image * pNimg, const int ipos);
+	static double GetValueAsDoubleFromOriginalNiiStruct(const nifti_image * pNimg, const int ipos);
 
 };
 /////////////////////////
@@ -288,7 +292,7 @@ bool zxhImageNiftiT<PixelType>::OpenImage( zxhImageDataT<PixelType> * pImage, co
 };
 
 template<class PixelType>
-bool zxhImageNiftiT<PixelType>::OpenImageSafe(zxhImageDataT<PixelType> * pImage, const std::string sFilename ) // 2017-07-19 update , const ZXH_EnumerateDataType datatype)
+bool zxhImageNiftiT<PixelType>::OpenImageSafe(zxhImageDataT<PixelType> * pImage, const std::string sFilename, const zxhEnumerateDataType datatype)
 {
 	std::string sFilenameExist = GetFilenameCheckGz(sFilename);
 	nifti_image * pNimg = nifti_image_read(sFilenameExist.c_str(), 1);
@@ -299,8 +303,11 @@ bool zxhImageNiftiT<PixelType>::OpenImageSafe(zxhImageDataT<PixelType> * pImage,
 	}
 	zxhImageInfo imageinfo;
 	bool bhead = SetImageInfoFromNIFTI(imageinfo, pNimg); 
-	imageinfo.DataType = (zxhushort) pImage->GetImageInfo()->DataType;
-	imageinfo.ByteOfDataType = sizeof(PixelType);  
+	if (imageinfo.ByteOfDataType != sizeof(PixelType) || imageinfo.DataType != (zxhushort)(datatype))
+	{
+		imageinfo.DataType = (zxhushort) datatype;
+		imageinfo.ByteOfDataType = sizeof(PixelType); 
+	}
 	if (bhead == false)
 	{
 		if (pNimg != 0) nifti_image_free(pNimg); pNimg = 0;
@@ -336,7 +343,7 @@ bool zxhImageNiftiT<PixelType>::OpenImageSafe(zxhImageDataT<PixelType> * pImage,
 	{ 
 		for (long int ipos = 0; ipos < inum; ++ipos)
 		{
-			float8 niivalue = GetValueAsDoubleFromOriginalNiiStruct(pNimg, ipos);
+			long double niivalue = GetValueAsDoubleFromOriginalNiiStruct(pNimg, ipos);
 			pImage->SetImageData(ipos, (PixelType)((niivalue)*slope + inter));
 		} 
 	}; break;
@@ -387,7 +394,7 @@ bool zxhImageNiftiT<PixelType>::SaveImage(const zxhImageDataT<PixelType>*pImg,co
 	SetNIFTIFromImageInfo( &niimg, imageinfo ) ;
 
 	struct nifti_1_header niihdr = nifti_convert_nim2nhdr( &niimg ) ;
-	nifti_image *niisave = nifti_convert_nhdr2nim(niihdr, strFilename.c_str()); // This sets fname and iname
+	nifti_image *niisave = nifti_convert_nhdr2nim( niihdr, strFilename.c_str() ); // This sets fname and iname
 	niisave->iname_offset = 352;                           			// reference from irtk Some nifti versions lose this on the way!
 
 	/// Set data pointer in nifti image struct
@@ -439,13 +446,6 @@ bool zxhImageNiftiT<PixelType>::SaveImage(const zxhImageDataT<PixelType>*pImg,co
 	//delete [] pdata ; will be delete in nifti_image_free(niisave);
 
 	nifti_image_write(niisave ) ;
-	/*znzFile fp = nifti_image_write_hdr2_img2(niisave, 1, "wb", NULL, NULL);
-	if (fp){
-		if (g_opts.debug > 2) fprintf(stderr, "-d niw: done with znzFile\n");
-		free(fp);
-	}
-	if (g_opts.debug > 1) fprintf(stderr, "-d nifti_image_write: done\n");*/
-
 	nifti_image_free( niisave ) ;
 	if( glbVerboseOutput>0 ) std::cout<<"success: Save image "<<strFilename<<"\n";
 	return true ;
@@ -493,41 +493,41 @@ long int zxhImageNiftiT<PixelType>::GetValueAsLongIntFromOriginalNiiStruct(const
 	}
 }
 template<class PixelType>
-float8 zxhImageNiftiT<PixelType>::GetValueAsDoubleFromOriginalNiiStruct(const nifti_image * pNimg, const int ipos)
+double zxhImageNiftiT<PixelType>::GetValueAsDoubleFromOriginalNiiStruct(const nifti_image * pNimg, const int ipos)
 { 
 	switch (pNimg->datatype) //definition in nifti1.h DT_????? or NIFTI_TYPE_???
 	{
 	case NIFTI_TYPE_UINT8:
 	{unsigned char *pdata = (unsigned char *)pNimg->data;
-	return (float8)*(pdata + ipos); }
+	return (double)*(pdata + ipos); }
 		break;
 	case NIFTI_TYPE_INT8:
 	{char *pdata = (char *)pNimg->data;
-	return (float8)*(pdata + ipos); }
+	return (double)*(pdata + ipos); }
 		break;
 	case NIFTI_TYPE_INT16:
 	{short int *pdata = (short int *)pNimg->data;
-	return (float8)*(pdata + ipos); }
+	return (double)*(pdata + ipos); }
 		break;
 	case NIFTI_TYPE_UINT16:
 	{unsigned short int *pdata = (unsigned short int *)pNimg->data;
-	return (float8)*(pdata + ipos); }
+	return (double)*(pdata + ipos); }
 		break;
 	case NIFTI_TYPE_FLOAT32:
 	{float *pdata = (float *)pNimg->data;
-	return (float8)*(pdata + ipos); }
+	return (double)*(pdata + ipos); }
 		break;
 	case NIFTI_TYPE_INT32:
 	{int *pdata = (int *)pNimg->data;
-	return (float8)*(pdata + ipos); }
+	return (double)*(pdata + ipos); }
 		break;
 	case NIFTI_TYPE_UINT32:
 	{unsigned int *pdata = (unsigned int *)pNimg->data;
-	return (float8)*(pdata + ipos); }
+	return (double)*(pdata + ipos); }
 		break;
 	case NIFTI_TYPE_FLOAT64:
 	{float8 *pdata = (float8* )pNimg->data;
-	return (float8)*(pdata + ipos); }
+	return (double)*(pdata + ipos); }
 		break;
 	default:
 		return 0;
@@ -552,7 +552,7 @@ std::string  zxhImageNiftiT<PixelType>::GetFilenameCheckGz( const std::string st
 	return strFilename ;
 }
 
-typedef zxhImageNiftiT<ZXH_PixelTypeDefault> zxhImageNifti;
+typedef zxhImageNiftiT<PixelTypeDefault> zxhImageNifti;
 
 //}//end of namespace
 #endif //zxhImageNifti_h

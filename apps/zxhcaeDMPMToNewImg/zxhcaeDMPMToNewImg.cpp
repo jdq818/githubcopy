@@ -239,9 +239,9 @@ bool VesselnessMaskBaseOnDist(vector<PointCordTypeDef> vPathPointsWorld,zxhImage
 	for(int iy=0;iy<ImgNewVslsSize[1];++iy)
 	for(int ix=0;ix<ImgNewVslsSize[0];++ix)
 	{
-		float Pos[ZXH_ImageDimensionMax]={ix,iy,iz,it};
+		float Pos[ImageDimensionMax]={ix,iy,iz,it};
 		imgReadNewVsls.GetImageInfo()->ImageToWorld(Pos);
-		float PosWorld[ZXH_ImageDimensionMax]={Pos[0],Pos[1],Pos[2],Pos[3]};
+		float PosWorld[ImageDimensionMax]={Pos[0],Pos[1],Pos[2],Pos[3]};
 		if(!(InSphere(PosWorld,vPathPointsWorld)))
 		{
 			imgReadNewVsls.SetPixelByGreyscale(ix,iy,iz,it,-1);
@@ -320,7 +320,7 @@ bool MapModelPointsToNewImageItself(vector<PointCordTypeDef> vPathPointsWorld,zx
 	
 	for (int i=0;i<vPathPointsWorld.size();i++)
 	{
-		float PointPosWorld[ZXH_ImageDimensionMax]={0};
+		float PointPosWorld[ImageDimensionMax]={0};
 		int PointPos[4]={0};
 		PointPosWorld[0]=vPathPointsWorld[i].x;
 		PointPosWorld[1]=vPathPointsWorld[i].y;
@@ -352,7 +352,7 @@ bool MapModelPointsToNewImage(vector<PointCordTypeDef> vPathPointsWorld,zxhImage
 	vPathPointsWorldMAPT.clear();
 	for (int i=0;i<vPathPointsWorld.size();i++)
 	{
-		float PointPosWorld[ZXH_ImageDimensionMax]={0};
+		float PointPosWorld[ImageDimensionMax]={0};
 		int PointPos[4]={0};
 		PointCordTypeDef PointMAPT;
 		PointPosWorld[0]=vPathPointsWorld[i].x;
@@ -422,7 +422,7 @@ bool MapModelPointsToNewImageWithinR(vector<PointCordTypeDef> vPathPointsWorld,z
 	vPathPointsWorldMAPT.clear();
 	for (int i=0;i<vPathPointsWorld.size();i++)
 	{
-		float PointPosWorld[ZXH_ImageDimensionMax]={0};
+		float PointPosWorld[ImageDimensionMax]={0};
 		int PointPos[4]={0};
 		PointCordTypeDef PointMAPT;
 		PointPosWorld[0]=vPathPointsWorld[i].x;
@@ -505,7 +505,7 @@ bool MapModelPointsToNewImageNew(vector<PointCordTypeDef> vPathPointsWorld,zxhIm
 	vPathPointsWorldMAPT.clear();
 	for (int i=0;i<vPathPointsWorld.size();i++)
 	{
-		float PointPosWorld[ZXH_ImageDimensionMax]={0};
+		float PointPosWorld[ImageDimensionMax]={0};
 		int PointPos[4]={0};
 		PointCordTypeDef PointMAPT;
 		PointPosWorld[0]=vPathPointsWorld[i].x;
@@ -568,7 +568,7 @@ bool MapModelPointsToImage(vector<PointCordTypeDef> vPathPointsWorld,zxhImageDat
 	vPathPointsWorldMAPT.clear();
 	for (int i=0;i<vPathPointsWorld.size();i++)//map the vetor points to the image
 	{
-		float PointPosWorld[ZXH_ImageDimensionMax]={0};
+		float PointPosWorld[ImageDimensionMax]={0};
 		int PointPos[4]={0};
 		PointCordTypeDef PointMAPT;
 		PointPosWorld[0]=vPathPointsWorld[i].x;
@@ -584,7 +584,7 @@ bool MapModelPointsToImage(vector<PointCordTypeDef> vPathPointsWorld,zxhImageDat
 		PointMAPT.z=PointPos[2];
 		vPathPointsWorldMAPT.push_back(PointMAPT);
 		imgReadNewVsls.SetPixelByGreyscale(PointPos[0],PointPos[1],PointPos[2],PointPos[3],ZXH_Foreground);
-		//cout<<vPathPointsWorld[i].x<<endl;
+
 	}
 
 	for (int mapNUM=1;mapNUM<vPathPointsWorldMAPT.size()-1;mapNUM++)//²åÖµ
@@ -633,7 +633,7 @@ bool MapModelPointsToImage_OCC(vector<PointCordTypeDef> vPathPointsWorld,zxhImag
 	{
 
 		if(i>2266&&i<2424) continue;
-		float PointPosWorld[ZXH_ImageDimensionMax]={0};
+		float PointPosWorld[ImageDimensionMax]={0};
 		int PointPos[4]={0};
 		PointCordTypeDef PointMAPT;
 		PointPosWorld[0]=vPathPointsWorld[i].x;
@@ -723,8 +723,6 @@ bool ReadPointTxt(char *filename,vector< PointCordTypeDef> &cl)
 		while(!iFileIn.eof())
 		{
 			iFileIn>>strctTempPoint.x>>strctTempPoint.y>>strctTempPoint.z;
-			strctTempPoint.x=-1*strctTempPoint.x;
-			strctTempPoint.y=-1*strctTempPoint.y;
 			cl.push_back(strctTempPoint);
 		}
 	}
@@ -775,7 +773,7 @@ int main(int argc, char *argv[])
 		if(DetectFile)
 		{
 			ReadVtk(chFileName, vPathPointsWorld);
-			std::cerr << "type of the line is .vtk"<<endl; 
+
 		}
 		DetectFile.close();
 	}
@@ -787,7 +785,7 @@ int main(int argc, char *argv[])
 		if(DetectFile)
 		{
 			ReadPointTxt(chFileName, vPathPointsWorld);
-			std::cerr << "type of the line is .txt"<<endl; 
+
 		}
 		DetectFile.close();
 	}
